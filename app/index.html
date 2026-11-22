@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finanční deník</title>
+<meta name="description" content="Zápisník na peníze, který se počítá sám.">
+<meta name="theme-color" content="#5b3620">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Courier+Prime:wght@400;700&family=EB+Garamond:wght@400;600&family=Inter:wght@400;600&family=Patrick+Hand&family=Shantell+Sans:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body data-skin="kniha" data-paper="linky">
+<div id="login" hidden></div>
+<div id="app" hidden>
+  <header class="bar">
+    <h1 class="brand">Finanční deník</h1>
+    <nav class="nav" aria-label="Stránky deníku">
+      <a href="#den">Den</a><a href="#mesic">Měsíc</a><a href="#tankovani">Tankování</a><a href="#ukoly">Úkolníček</a><a href="#kategorie">Kategorie</a><a href="#hledat">Hledat</a>
+    </nav>
+    <span class="stav" id="stav"></span>
+    <button class="vz" id="vzBtn" aria-expanded="false" aria-controls="panel">Vzhled a účet</button>
+  </header>
+  <div class="panel" id="panel" hidden><div id="panelIn"></div></div>
+  <main class="book" id="book"><section class="page L" id="pL"></section><section class="page R" id="pR"></section></main>
+</div>
+<noscript><p style="padding:24px;color:#fff">Finanční deník potřebuje zapnutý JavaScript.</p></noscript>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+
+        "ucet": {
+          ".write": "auth != null && auth.uid === $uid && !data.exists()",
+          ".validate": "newData.hasChildren(['vytvoreno', 'trialDo']) && newData.child('vytvoreno').isNumber() && newData.child('vytvoreno').val() <= now + 60000 && newData.child('trialDo').isNumber() && newData.child('trialDo').val() <= now + 2678400000"
+        },
+
+        "e": {
+          ".write": "auth != null && auth.uid === $uid",
+          "$id": {
+            ".validate": "newData.hasChildren(['id', 'd', 'typ', 'kc']) && newData.child('kc').isNumber() && newData.child('kc').val() >= 0 && newData.child('kc').val() < 100000000 && (newData.child('typ').val() === 'v' || newData.child('typ').val() === 'p') && newData.child('d').isString() && newData.child('d').val().matches(/^\\d{4}-\\d{2}-\\d{2}$/)"
+          }
+        },
+        "notes": {
+          ".write": "auth != null && auth.uid === $uid",
+          "$den": { ".validate": "newData.isString() && newData.val().length < 20000" }
+        },
+        "stk": {
+          ".write": "auth != null && auth.uid === $uid",
+          "$id": { "img": { ".validate": "newData.isString() && newData.val().length < 150000" } }
+        },
+        "nast":  { ".write": "auth != null && auth.uid === $uid" },
+        "kats":  { ".write": "auth != null && auth.uid === $uid" },
+        "pen":   { ".write": "auth != null && auth.uid === $uid" },
+        "pred":  { ".write": "auth != null && auth.uid === $uid" },
+        "vozy":  { ".write": "auth != null && auth.uid === $uid" },
+        "ukoly": { ".write": "auth != null && auth.uid === $uid" },
+
+        "$jine": { ".validate": false }
+      }
+    }
+  }
+}

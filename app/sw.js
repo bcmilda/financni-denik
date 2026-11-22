@@ -1,0 +1,19 @@
+// Finanční deník · sw.js · v0.1.0
+// Offline: stránka a skripty z mezipaměti, když není síť. Firebase si data drží sám.
+// Při každé nové verzi zvyš CACHE, jinak uživatelům zůstane stará verze.
+const CACHE = 'fd-0.1.0';
+const SOUBORY = ['./', 'index.html', 'css/app.css', 'manifest.json', 'icons/icon.svg',
+  'js/app.js', 'js/util.js', 'js/logic.js', 'js/data.js', 'js/store.js', 'js/views.js', 'js/charts.js', 'js/config.js', 'js/cloud.js'];
+
+self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SOUBORY)).then(() => self.skipWaiting())); });
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x !== CACHE).map(x => caches.delete(x)))).then(() => self.clients.claim()));
+});
+// Vlastní soubory: nejdřív síť (aby se nová verze projevila hned), bez sítě mezipaměť.
+// Cizí adresy (Firebase, písma) neřešíme – ty si drží prohlížeč a Firebase sám.
+self.addEventListener('fetch', e => {
+  const u = new URL(e.request.url);
+  if (e.request.method !== 'GET' || u.origin !== location.origin) return;
+  e.respondWith(fetch(e.request).then(r => { const k = r.clone(); caches.open(CACHE).then(c => c.put(e.request, k)); return r; })
+    .catch(() => caches.match(e.request).then(r => r || caches.match('index.html'))));
+});
