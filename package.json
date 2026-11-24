@@ -1,6 +1,6 @@
 {
   "name": "financni-denik",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Finanční deník – zápisník na peníze, který se počítá sám",
   "type": "module",

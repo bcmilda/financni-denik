@@ -5,12 +5,10 @@
     "users": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-
         "ucet": {
           ".write": "auth != null && auth.uid === $uid && !data.exists()",
           ".validate": "newData.hasChildren(['vytvoreno', 'trialDo']) && newData.child('vytvoreno').isNumber() && newData.child('vytvoreno').val() <= now + 60000 && newData.child('trialDo').isNumber() && newData.child('trialDo').val() <= now + 2678400000"
         },
-
         "e": {
           ".write": "auth != null && auth.uid === $uid",
           "$id": {
@@ -19,20 +17,54 @@
         },
         "notes": {
           ".write": "auth != null && auth.uid === $uid",
-          "$den": { ".validate": "newData.isString() && newData.val().length < 20000" }
+          "$den": {
+            ".validate": "newData.isString() && newData.val().length < 20000"
+          }
         },
         "stk": {
           ".write": "auth != null && auth.uid === $uid",
-          "$id": { "img": { ".validate": "newData.isString() && newData.val().length < 150000" } }
+          "$id": {
+            "img": {
+              ".validate": "newData.isString() && newData.val().length < 150000"
+            }
+          }
         },
-        "nast":  { ".write": "auth != null && auth.uid === $uid" },
-        "kats":  { ".write": "auth != null && auth.uid === $uid" },
-        "pen":   { ".write": "auth != null && auth.uid === $uid" },
-        "pred":  { ".write": "auth != null && auth.uid === $uid" },
-        "vozy":  { ".write": "auth != null && auth.uid === $uid" },
-        "ukoly": { ".write": "auth != null && auth.uid === $uid" },
-
-        "$jine": { ".validate": false }
+        "nast": {
+          ".write": "auth != null && auth.uid === $uid"
+        },
+        "kats": {
+          ".write": "auth != null && auth.uid === $uid"
+        },
+        "pen": {
+          ".write": "auth != null && auth.uid === $uid"
+        },
+        "pred": {
+          ".write": "auth != null && auth.uid === $uid"
+        },
+        "vozy": {
+          ".write": "auth != null && auth.uid === $uid"
+        },
+        "ukoly": {
+          ".write": "auth != null && auth.uid === $uid"
+        },
+        "osoby": {
+          ".write": "auth != null && auth.uid === $uid"
+        },
+        "zivot": {
+          ".write": "auth != null && auth.uid === $uid",
+          "$id": {
+            ".validate": "newData.hasChildren(['id', 'osoba', 'typ', 'd'])",
+            "img": {
+              ".validate": "newData.isString() && newData.val().length < 320000"
+            },
+            "prepis": {
+              ".validate": "newData.isString() && newData.val().length < 20000"
+            }
+          }
+        },
+        "$jine": {
+          ".validate": false
+        }
       }
     }
   }

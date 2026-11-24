@@ -1,4 +1,4 @@
-// Finanční deník · store.js · v0.2.0
+// Finanční deník · store.js · v0.3.0
 // Jediné místo, kde se mění data. Dva režimy:
 //   local – bez účtu, vše v localStorage (ukázka / vyzkoušení)
 //   cloud – Firebase RTDB users/{uid}/…, každá změna se zapisuje po položkách
@@ -24,7 +24,7 @@ export function doplnit(S) {
 }
 
 export function startLocal(demo) {
-  st.mode = 'local'; st.uid = null;
+  st.mode = 'local'; st.uid = null; st.token = null;
   let S = null;
   try { S = JSON.parse(localStorage.getItem(LOCAL)); } catch (err) { S = null; }
   st.S = doplnit(S || (demo ? ukazka() : prazdny()));

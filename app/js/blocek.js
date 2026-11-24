@@ -1,4 +1,4 @@
-// Finanční deník · blocek.js · v0.2.0
+// Finanční deník · blocek.js · v0.3.0
 // „Trhací bloček“ – rychlý zápis z kapsy. Otevírá ho widget na ploše Androidu,
 // zkratka ikony (dlouhé podržení) nebo adresa #zapis / #zapis-mic.
 // Zápis jde rovnou do deníku (do dnešního dne), stejně jako ze stránky Den.

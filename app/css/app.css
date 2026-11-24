@@ -1,4 +1,4 @@
-/* Finanční deník · app.css · v0.2.0 */
+/* Finanční deník · app.css · v0.3.0 */
 /* VOICE everyday, warm: a personal notebook about money, not a dashboard
    IDEA a real paper diary lying open on a desk – covers, paper, ink, highlighter, taped receipts
    PICTURE the open book itself: two pages on a laptop, stacked pages on a phone
@@ -201,3 +201,72 @@ body.blocek-open{overflow:hidden}
 .chip.on{background:color-mix(in srgb,var(--c) 22%,#fffbe9);font-weight:600}
 .slip .btn.wide{width:100%;margin-top:4px}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:60;background:#1d1d1f;color:#fff;padding:12px 18px;border-radius:12px;font-size:15px;box-shadow:0 10px 30px -10px rgba(0,0,0,.6);max-width:calc(100% - 32px)}
+
+/* ---- v0.3: Kniha života ---- */
+.box{border:1.5px dashed var(--line);border-radius:10px;padding:12px 14px;margin:10px 0 14px}
+.rok{display:flex;justify-content:space-between;align-items:baseline;font:600 22px/1.2 var(--tf);margin:18px 0 2px;border-bottom:1.5px solid var(--ui)}
+.rok span{font:13px 'Inter',sans-serif;color:var(--muted)}
+.zr{display:grid;grid-template-columns:4.2em minmax(0,1fr) auto;gap:10px;align-items:start;padding:8px 0;border-bottom:1px dashed var(--line);border-left:4px solid var(--c);padding-left:8px}
+.zr .zd{font-size:13px;color:var(--muted);white-space:nowrap;padding-top:3px}
+.zr .zt{display:grid;gap:1px}
+.zr .zt b{font-family:var(--hand);font-size:var(--hs);font-weight:400;color:var(--ink);line-height:1.2}
+.zr .zt small{font-size:14px;color:var(--ui)}
+.zr .zt em{font-style:normal;font-size:12.5px;color:var(--c)}
+.zr .del{grid-row:auto;grid-column:auto}
+.zf{margin-bottom:8px}
+.zf .tg{padding:5px 10px;min-height:36px;font-size:14px}
+.ztabs{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1.5px solid var(--ui);margin:0 0 12px}
+.ztab{flex:none;border:0;background:transparent;color:var(--muted);font:15px 'Inter',sans-serif;padding:10px 12px;min-height:44px;cursor:pointer;border-radius:8px 8px 0 0}
+.ztab.on{background:var(--ui);color:var(--paper)}
+.mapa{display:grid;gap:8px;margin:6px 0 4px}
+.et{display:grid;grid-template-columns:minmax(6em,10em) minmax(0,1fr);gap:10px;align-items:center;font-size:14px}
+.eb{position:relative;height:16px;border-bottom:1px solid var(--line)}
+.eb i{position:absolute;top:1px;height:14px;border:1.6px solid var(--acc);border-radius:3px 7px 3px 6px;background:repeating-linear-gradient(-45deg,color-mix(in srgb,var(--acc) 55%,transparent) 0 2px,transparent 2px 6px)}
+.eb.ud i{width:12px;height:12px;top:2px;margin-left:-6px;border-radius:50%;background:var(--ink);border:0}
+.eroky{position:relative;height:18px;margin-left:calc(min(10em,30%) + 10px);font-size:12px;color:var(--muted)}
+.eroky span{position:absolute;transform:translateX(-50%)}
+.lz{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:0 0 14px;background:color-mix(in srgb,var(--paper) 70%,#fff)}
+body[data-skin=noc] .lz{background:#18203a}
+.lz header{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 10px;align-items:baseline}
+.lz header b{font:600 18px/1.2 var(--tf)}
+.lz header span{font-size:13px;color:var(--muted);white-space:nowrap}
+.lz header .del{grid-row:auto;grid-column:auto}
+.lm{margin:4px 0 8px;font-size:14px;color:var(--muted)}
+.lf{width:min(300px,100%);margin:6px 0 14px}
+.prepis{font:14px/1.5 'Courier Prime',monospace;white-space:pre-wrap;margin:6px 0}
+details summary{cursor:pointer;font-size:14px;color:var(--acc);padding:6px 0}
+.vysv{border-left:4px solid #2e8b6e;padding:4px 0 4px 12px;margin:10px 0 0}
+.vysv h5{margin:10px 0 2px;font:600 15px 'Inter',sans-serif}
+.vysv p{margin:0 0 4px;font-size:15px}
+.vysv ul{margin:2px 0;padding-left:20px;font-size:15px}
+.vysv.prazdne{border-left-color:var(--line)}
+.pojmy{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 12px;margin:2px 0;font-size:14px}
+.pojmy dt{font-weight:600}
+.pojmy dd{margin:0}
+.pozn{font-size:12.5px!important;color:var(--muted)}
+.chk{display:flex!important;align-items:center;gap:8px;align-self:end;min-height:44px}
+.chk input{width:22px;height:22px;min-height:0!important}
+textarea.inp{font:16px/1.4 'Inter',sans-serif;resize:vertical}
+.prukaz{background:#f4efe1;color:#2b2a26;border:1.5px solid #b9ae8f;border-radius:6px;padding:14px 14px 10px;box-shadow:0 8px 18px -14px rgba(0,0,0,.5);--paper:#f4efe1;--ui:#2b2a26;--line:#cfc4a6;--muted:#6b6450}
+.prukaz .ph{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;border-bottom:2px double #8a7f62;padding-bottom:6px;margin-bottom:8px}
+.prukaz .ph b{font:600 20px 'EB Garamond',serif;color:#5b2a17}
+.prukaz .ph span{font-size:13px}
+.prukaz th,.prukaz td{text-align:left;vertical-align:top}
+.prukaz td.wrap{white-space:normal;min-width:9em}
+.prukaz td small{display:block;font-size:12.5px;color:var(--muted);white-space:normal}
+.prukaz td{position:relative}
+.razitko{display:inline-block;margin-left:6px;font:700 10px 'Inter',sans-serif;color:#2e5aa8;border:1.5px solid #2e5aa8;border-radius:50%;padding:6px 3px;transform:rotate(var(--r));opacity:.7;font-style:normal}
+.pusa{display:block;width:100%;max-width:440px;margin:6px auto 10px}
+.pusa .rty{fill:#c9706b}
+.pusa .dutina{fill:#5b1f24}
+.pusa .jazyk{fill:#d9787b}
+.pusa .dasen{fill:none;stroke:#e8a3a0;stroke-width:26;stroke-linecap:round}
+.pusa .zub path{fill:#fffdf6;stroke:#8a7a66;stroke-width:1.4;cursor:pointer}
+.pusa .zub.chybi path{fill:rgba(255,255,255,.12);stroke:#f5d7d2;stroke-dasharray:3 3}
+.pusa .zub.sel path{stroke:#ffcf3f;stroke-width:3}
+.pusa .zub:focus{outline:none}
+.pusa .zub:focus path{stroke:#ffcf3f;stroke-width:3}
+.pusa .hv{fill:#ffcf3f;font-size:14px;stroke:none;paint-order:normal}
+.pusa .pl{fill:var(--muted);font-size:12px;stroke:none}
+.fig.mini{min-height:190px}
+@media (max-width:600px){.et{grid-template-columns:minmax(5em,7em) minmax(0,1fr)}.eroky{margin-left:calc(7em + 10px)}.zr{grid-template-columns:3.6em minmax(0,1fr) auto}}

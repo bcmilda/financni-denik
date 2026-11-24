@@ -1,4 +1,4 @@
-// Finanční deník · cloud.js · v0.2.0
+// Finanční deník · cloud.js · v0.3.0
 // Firebase (Auth + Realtime Database). Načítá se jen když je vyplněný js/config.js.
 
 const V = '10.12.2';
@@ -33,6 +33,8 @@ export async function startCloud(config, onUser) {
     odhlasit: () => { if (unsub) unsub(); unsub = null; return A.signOut(auth); },
     // Odběr celého deníku uživatele (první načtení + změny z jiných zařízení)
     odebirej: (uid, cb) => { if (unsub) unsub(); unsub = D.onValue(D.ref(db, 'users/' + uid), s => cb(s.val())); },
+    // Přihlašovací token pro vlastní worker (AI vysvětlení)
+    token: () => auth.currentUser ? auth.currentUser.getIdToken() : Promise.reject(new Error('neprihlasen')),
     writer: uid => ({ write: (path, val) => D.set(D.ref(db, 'users/' + uid + '/' + path.join('/')), val).catch(e => console.error('Zápis selhal', path.join('/'), e)) }),
   };
   A.onAuthStateChanged(auth, u => onUser(u, api));

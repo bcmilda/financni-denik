@@ -1,7 +1,8 @@
-// Finanční deník · data.js · v0.2.0
+// Finanční deník · data.js · v0.3.0
 // Vzhledy, písma, výchozí kategorie, prázdný deník a ukázkový měsíc.
 
 import { iso, addD, mk, p2, uid } from './util.js';
+import { ukazkaZivota } from './zivot-data.js';
 
 export const SKINS = [
   { id: 'kniha', n: 'Starobylá kniha', c: '#5b3620', p: '#f2e4c4', paper: 'linky' },
@@ -49,7 +50,7 @@ export function prazdny() {
   const now = Date.now();
   return {
     nast: { ...NAST }, kats: byId(KATS.map(k => ({ ...k }))), pen: JSON.parse(JSON.stringify(PEN)),
-    e: {}, notes: {}, stk: {}, pred: {}, vozy: {}, ukoly: {},
+    e: {}, notes: {}, stk: {}, pred: {}, vozy: {}, ukoly: {}, osoby: {}, zivot: {},
     ucet: { vytvoreno: now, trialDo: now + TRIAL_DNI * 864e5 },
   };
 }
@@ -99,5 +100,6 @@ export function ukazka() {
   const prevYm = mk(addD(first, -1));
   [['Zaplatit pojištění auta', dd(Math.min(25, 28)), false, ym], ['Objednat STK na motorku', '', false, prevYm], ['Vrátit Petrovi 500 Kč', '', true, ym], ['Zrušit nepoužívané předplatné', '', false, ym]]
     .forEach(([text, termin, hotovo, mesic]) => { const id = uid(); S.ukoly[id] = { id, text, termin, hotovo, mesic }; });
+  Object.assign(S, ukazkaZivota());
   return S;
 }

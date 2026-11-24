@@ -1,7 +1,7 @@
 # Finanční deník
 
 Zápisník na peníze, který se počítá sám. Samostatná appka vycházející z Deníku ve FinanceFlow.
-Verze **0.2.0** (24. 11. 2026).
+Verze **0.3.0** (24. 11. 2026).
 
 ## Co umí v0.1
 
@@ -13,6 +13,8 @@ Verze **0.2.0** (24. 11. 2026).
 - **Tankování:** auta i motorky, klouzavá spotřeba, Kč/km, kontrola tachometru, vozidlo se vybere podle km.
 - **Úkolníček:** termíny, nesplněné úkoly se přenášejí do dalšího měsíce.
 - **Kategorie:** výchozí + vlastní, barvy, tagy se součty, peněženky se zůstatkem.
+- **Kniha života:** osoby (já, děti, partner), osa života, mapa života s etapami a událostmi,
+  lékařský archiv (fotka, přepis, AI vysvětlení lidskou řečí), očkovací průkaz, zoubky na kreslené puse, růst s grafem.
 - **Hledat:** napříč zápisy, zápisky, účtenkami a úkoly, bez diakritiky.
 - Přihlášení Googlem nebo e-mailem, synchronizace mezi zařízeními, offline, instalace do telefonu (PWA).
 - Zkušební měsíc zdarma (platby přijdou ve verzi 0.5).
@@ -87,8 +89,11 @@ app/                 vše, co jde na hosting
   sw.js              offline mezipaměť
 database.rules.json  pravidla databáze
 firebase.json        hosting + pravidla
+  js/zivot.js        Kniha života (stránky a akce)
+  js/zivot-data.js   Kniha života – věk, zuby FDI, ukázková data
   js/blocek.js       trhací bloček (rychlý zápis), otevírá ho widget a zkratky
   js/hlas.js         diktování (Android: plugin Diktat, prohlížeč: Web Speech)
+worker/              AI worker (Cloudflare) pro vysvětlení lékařských zpráv – viz worker/README.md
 android/             Android appka (Capacitor), widget ZapisWidget, plugin DiktatPlugin
 tests/               testy v Node
 .github/workflows/   ukázka na GitHub Pages, sestavení Android APK

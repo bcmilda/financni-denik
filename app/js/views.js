@@ -1,4 +1,4 @@
-// Finanční deník · views.js · v0.2.0
+// Finanční deník · views.js · v0.3.0
 // Každá stránka vrací [levá strana, pravá strana] jako HTML. Žádné zápisy dat – ty dělá app.js.
 
 import { esc, kc, kc2, nf, pd, iso, mk, dim, dnes, DNY, MG, MN, ymLabel, datKratce, vals } from './util.js';
@@ -150,7 +150,7 @@ export function vKat(S, U) {
 
 export function vHledat(S, U) {
   const res = hledej(S, U.q || '');
-  const L = '<h2 class="pt">Hledat v deníku</h2><p class="ps">Prohledá zápisy, zápisky, účtenky, tagy i úkoly. Diakritiku psát nemusíš.</p>' +
+  const L = '<h2 class="pt">Hledat v deníku</h2><p class="ps">Prohledá zápisy, zápisky, účtenky, tagy, úkoly i Knihu života. Diakritiku psát nemusíš.</p>' +
     '<input id="hq" class="line hand" type="search" autocomplete="off" placeholder="např. káva, #rande, Lidl" value="' + esc(U.q || '') + '" aria-label="Hledaný text">' +
     '<p class="note2" id="hcount">' + ((U.q || '').trim().length < 2 ? 'Napiš aspoň dva znaky.' : res.length ? 'Nalezeno ' + res.length + '×' : 'Nic jsem nenašel.') + '</p>';
   const item = r => {
@@ -158,6 +158,10 @@ export function vHledat(S, U) {
     if (r.typ === 'e') return entHTML(S, r.e, true);
     if (r.typ === 'n') return '<li class="hit"><span class="kind">Zápisek · ' + odk + '</span><span class="hand">' + esc(r.text) + '</span></li>';
     if (r.typ === 's') return '<li class="hit"><span class="kind">Účtenka · ' + odk + '</span><span>' + esc(r.s.obchod || 'účtenka z fotky') + '</span></li>';
+    if (r.typ === 'z') {
+      const z = r.z, o = (S.osoby || {})[z.osoba] || {}, tab = { lekar: 'archiv', ockovani: 'ockovani', zub: 'zuby', rust: 'rust' }[z.typ] || 'mapa';
+      return '<li class="hit"><span class="kind">Kniha života · ' + esc(o.jmeno || '') + ' · <a href="#zivot" data-act="goziv" data-id="' + esc(z.osoba) + '" data-tab="' + tab + '">' + datKratce(z.d) + ' ' + z.d.slice(0, 4) + '</a></span><span class="hand">' + esc(z.titul || z.latka || z.lekar || z.text || '') + '</span></li>';
+    }
     return '<li class="hit"><span class="kind">Úkol' + (r.u.termin ? ' · ' + odk : '') + '</span><span class="hand">' + esc(r.u.text) + '</span></li>';
   };
   const R = '<h3 class="sub" style="margin-top:4px">Výsledky</h3>' + (res.length ? '<ul class="list" id="hres">' + res.slice(0, 80).map(item).join('') + '</ul>' : '<p class="empty" id="hres">Tady se ukáže, co najdu.</p>');

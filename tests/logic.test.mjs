@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { parse, tankStats, tachOk, hledej, zustatek, deser, plain } from '../app/js/logic.js';
 import { prazdny, ukazka } from '../app/js/data.js';
+import { vek, nazevZubu, oblouk, stavZubu } from '../app/js/zivot-data.js';
 
 let ok = 0;
 const t = (nazev, fn) => { fn(); ok++; console.log('✓', nazev); };
@@ -63,5 +64,28 @@ t('hledání bez diakritiky najde zápis, zápisek i tag', () => {
 t('zvýraznění v zápisku se escapuje a zachová', () => {
   assert.equal(deser('a <b> {{y|ahoj}}\nb'), 'a &lt;b&gt; <mark class="hl" data-c="y">ahoj</mark><br>b');
   assert.equal(plain('x {{p|y}} z'), 'x y z');
+});
+t('věk česky', () => {
+  assert.equal(vek('2019-05-12', '2025-09-03'), '6 let');
+  assert.equal(vek('2019-05-12', '2024-09-09'), '5 let 3 měsíce');
+  assert.equal(vek('2019-05-12', '2020-05-11'), '11 měsíců');
+  assert.equal(vek('2019-05-12', '2019-06-01'), '2 týdny');
+  assert.equal(vek('2019-05-12', '2021-06-12'), '2 roky 1 měsíc');
+  assert.equal(vek('1985-01-01', '2026-11-24'), '41 let');
+  assert.equal(vek('', '2026-01-01'), '');
+});
+t('zuby FDI', () => {
+  assert.equal(nazevZubu(81), 'řezák střední vpravo dole (mléčný)');
+  assert.equal(nazevZubu(36), 'první stolička vlevo dole');
+  assert.deepEqual(oblouk(true, true), [55, 54, 53, 52, 51, 61, 62, 63, 64, 65]);
+  assert.equal(oblouk(false, false).length, 16);
+  const st = stavZubu([{ typ: 'zub', zub: 71, akce: 'vypadl', d: '2025-10-20' }, { typ: 'zub', zub: 81, akce: 'vypadl', d: '2025-09-03' }, { typ: 'zub', zub: 36, akce: 'prorezal', d: '2025-06-10' }]);
+  assert.equal(st[81].prvni, true); assert.equal(st[71].prvni, undefined); assert.equal(st[36].prorezal, '2025-06-10');
+});
+t('kniha života v ukázce a v hledání', () => {
+  const S = ukazka();
+  assert.ok(Object.keys(S.osoby).length === 2 && Object.keys(S.zivot).length > 20);
+  assert.ok(hledej(S, 'mandle').some(x => x.typ === 'z' && x.z.typ === 'lekar'));
+  assert.ok(hledej(S, 'MMR').filter(x => x.typ === 'z').length === 2);
 });
 console.log(`\n${ok} testů prošlo`);

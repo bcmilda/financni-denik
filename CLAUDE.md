@@ -18,7 +18,7 @@ Deník ve FinanceFlow zůstává beze změny. Plán: dokument „Finanční den�
 - Vanilla JS, ES moduly, bez build kroku. PWA (manifest + `sw.js`).
 - Firebase Auth (Google, e-mail) + Realtime Database europe-west1. SDK 10.12.2 z gstatic, načítá se dynamicky
   jen při vyplněném `js/config.js`.
-- Data: `users/{uid}/{ucet|nast|kats|pen|e|notes|stk|pred|vozy|ukoly}`. Zápisy **po položkách**
+- Data: `users/{uid}/{ucet|nast|kats|pen|e|notes|stk|pred|vozy|ukoly|osoby|zivot}`. Zápisy **po položkách**
   (`store.zapis(['e', id], objekt)`), nikdy celý deník.
 - **Pravidla:** zápis jen na úrovni sekcí, ne na `users/$uid` (kaskáda pravidel v RTDB by jinak povolila vše pod ní).
   `ucet` jde zapsat jen jednou a `trialDo` max. 31 dní dopředu.
@@ -31,6 +31,12 @@ Deník ve FinanceFlow zůstává beze změny. Plán: dokument „Finanční den�
   protože WebView neumí Web Speech API. APK staví GitHub Actions (`android.yml`) → Releases „Android náhled“.
 - Náhledové APK je podepsané veřejným ladicím klíčem `android/app/nahled-debug.keystore` (heslo `android`).
   Klíč pro Google Play bude jiný a do repozitáře nepatří.
+- **Kniha života:** `osoby/{id}` {jmeno, narozeni, vztah} a `zivot/{id}` {osoba, typ, d, …}; typy
+  udalost, etapa (do), poznamka, lekar (lekar, duvod, prepis, img, vysv, pristi), ockovani (latka, proti, davka, sarze),
+  zub (zub = číslo FDI, akce vypadl/prorezal), rust (vyska, vaha). Fotka zprávy 800 px JPEG 0,6 (limit 320 000 znaků).
+  Appka zdraví nehodnotí ani nedoporučuje; AI jen vysvětluje text zprávy (worker/worker.js, prompt to hlídá).
+- AI worker `worker/worker.js` (Cloudflare): POST /vysvetli, ověřuje Firebase ID token přes accounts:lookup,
+  nic neukládá. Adresa v `js/config.js` → `AI_WORKER`.
 - Google přihlášení v Android appce: popup ve WebView nefunguje → později plugin @capacitor-firebase/authentication.
 
 ## Postup práce
@@ -39,6 +45,7 @@ Deník ve FinanceFlow zůstává beze změny. Plán: dokument „Finanční den�
 3. Nasazení: nejdřív `firebase deploy --only database` (když se měnila pravidla), pak hosting.
 
 ## Verze
+- **0.3.0** (24. 11. 2026) – Kniha života: osoby, osa a mapa života, lékařský archiv s AI vysvětlením, očkovací průkaz, zoubky, růst.
 - **0.2.0** (24. 11. 2026) – trhací bloček (rychlý zápis), zkratky ikony, Android appka s widgetem a diktováním.
 - **0.1.0** (21. 11. 2026) – první verze: kniha, 6 vzhledů, Den/Měsíc/Tankování/Úkolníček/Kategorie/Hledat,
   přihlášení, synchronizace, offline, zkušební měsíc.
