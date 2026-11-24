@@ -1,4 +1,4 @@
-// Finanční deník · views.js · v0.3.0
+// Finanční deník · views.js · v0.4.0
 // Každá stránka vrací [levá strana, pravá strana] jako HTML. Žádné zápisy dat – ty dělá app.js.
 
 import { esc, kc, kc2, nf, pd, iso, mk, dim, dnes, DNY, MG, MN, ymLabel, datKratce, vals } from './util.js';
@@ -54,7 +54,7 @@ export function vDen(S, U, Q, mic) {
   const ex = sumT(list, 'v'), inc = sumT(list, 'p');
   const L = '<div class="phead"><button class="arw" data-act="dprev" aria-label="Předchozí den">‹</button><div><h2 class="pt">' + DNY[dt.getDay()] + ' ' + dt.getDate() + '. ' + MG[dt.getMonth()] + '</h2><p class="ps">' + ymLabel(ym) + (d === dnes() ? ' · dnes' : ' · <a href="#den" data-act="today">zpět na dnešek</a>') + '</p></div><button class="arw" data-act="dnext" aria-label="Další den">›</button></div>' +
     '<div class="hlbar"><span>Zvýrazňovač: označ slova a vyber barvu</span>' + HL.map(h => '<button class="hlb" data-hl="' + h.c + '" style="--h:' + h.h + '" aria-label="Zvýraznit ' + h.n + '"></button>').join('') + '<button class="hlb x" data-hl="x">Smazat zvýraznění</button>' + (mic ? '<button class="hlb x mic2" data-act="mic" data-id="note">Diktovat zápisek</button>' : '') + '</div><p class="hint" id="hlHint"></p>' +
-    '<div id="note" class="note hand" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="Zápisek dne" data-ph="Co se dnes stalo…">' + deser(S.notes[d]) + '</div>' +
+    '<div id="note" class="note hand lined" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="Zápisek dne" data-ph="Co se dnes stalo…">' + deser(S.notes[d]) + '</div>' +
     '<h3 class="sub">Zapsané pohyby</h3>' + (list.length ? '<ul class="list">' + list.map(e => entHTML(S, e)).join('') + '</ul><p class="note2">Výdaje dne <b>' + kc(ex) + '</b>' + (inc ? ' · příjmy <b>' + kc(inc) + '</b>' : '') + '</p>' : '<p class="empty">Zatím nic. Zapiš první výdaj ' + (window.innerWidth > 900 ? 'vpravo' : 'níž') + '.</p>');
   const pr = S.pred[ym], mE = monthE(S, ym), left = (pr ? pr.prijem : sumT(mE, 'p')) - sumT(mE, 'v'), daysLeft = dim(ym) - dt.getDate() + 1;
   const tasks = vals(S.ukoly).filter(u => u.termin === d && !u.hotovo);

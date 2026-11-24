@@ -1,6 +1,6 @@
 // Finanční deník · testy čisté logiky · spuštění: node tests/logic.test.mjs
 import assert from 'node:assert/strict';
-import { parse, tankStats, tachOk, hledej, zustatek, deser, plain } from '../app/js/logic.js';
+import { parse, tankStats, tachOk, hledej, zustatek, deser, plain, mesice, souhrnMesice, stavKDatu, oceneni, posunYm, katObdobi } from '../app/js/logic.js';
 import { prazdny, ukazka } from '../app/js/data.js';
 import { vek, nazevZubu, oblouk, stavZubu } from '../app/js/zivot-data.js';
 
@@ -87,5 +87,27 @@ t('kniha života v ukázce a v hledání', () => {
   assert.ok(Object.keys(S.osoby).length === 2 && Object.keys(S.zivot).length > 20);
   assert.ok(hledej(S, 'mandle').some(x => x.typ === 'z' && x.z.typ === 'lekar'));
   assert.ok(hledej(S, 'MMR').filter(x => x.typ === 'z').length === 2);
+});
+t('měsíce, souhrn a pokladní stav', () => {
+  const S = prazdny();
+  S.pen.ucet.start = 1000;
+  const E = (id, d, typ, kc, kat) => { S.e[id] = { id, d, typ, kc, kat, pen: 'ucet', tagy: [] }; };
+  E('a', '2026-10-01', 'p', 30000, 'vypl'); E('b', '2026-10-02', 'v', 10000, 'byd'); E('c', '2026-11-01', 'p', 30000, 'vypl'); E('d', '2026-11-03', 'v', 8000, 'byd'); E('e', '2026-11-04', 'v', 1000, 'jidlo');
+  assert.equal(posunYm('2026-01', -1), '2025-12'); assert.equal(posunYm('2026-11', 2), '2027-01');
+  const m = mesice(S, '2026-11', 3);
+  assert.deepEqual(m.map(x => x.exp), [0, 10000, 9000]);
+  const s = souhrnMesice(S, '2026-11');
+  assert.equal(s.zExp, -10); assert.equal(s.zust, 21000); assert.deepEqual(s.kats[0], ['byd', 8000]);
+  assert.equal(stavKDatu(S, '2026-11-01'), 21000); assert.equal(stavKDatu(S, '2026-11-05'), 42000);
+  assert.deepEqual(katObdobi(S, '2026-10', '2026-11').map(x => x[0]), ['byd', 'jidlo']);
+});
+t('ocenění z dat', () => {
+  const S = prazdny();
+  ['01', '02', '03', '04', '05', '06', '07'].forEach((d, i) => { S.e['x' + i] = { id: 'x' + i, d: '2026-10-' + d, typ: i ? 'v' : 'p', kc: i ? 100 : 5000, kat: 'ost', tagy: [] }; });
+  S.pred['2026-10'] = { prijem: 5000, vydaje: 1000 };
+  S.cile = { a: { id: 'a', cil: 1000, nasporeno: 600 } };
+  const o = Object.fromEntries(oceneni(S, '2026-11-20').map(x => [x.id, x.kdy]));
+  assert.equal(o.prvni, '2026-10-01'); assert.equal(o.tyden, '2026-10-07'); assert.ok(o.plus); assert.ok(o.plan);
+  assert.ok(o.pulcil); assert.equal(o.cil, null); assert.equal(o.rok, null);
 });
 console.log(`\n${ok} testů prošlo`);

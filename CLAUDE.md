@@ -18,12 +18,18 @@ Deník ve FinanceFlow zůstává beze změny. Plán: dokument „Finanční den�
 - Vanilla JS, ES moduly, bez build kroku. PWA (manifest + `sw.js`).
 - Firebase Auth (Google, e-mail) + Realtime Database europe-west1. SDK 10.12.2 z gstatic, načítá se dynamicky
   jen při vyplněném `js/config.js`.
-- Data: `users/{uid}/{ucet|nast|kats|pen|e|notes|stk|pred|vozy|ukoly|osoby|zivot}`. Zápisy **po položkách**
+- Data: `users/{uid}/{ucet|nast|kats|pen|e|notes|stk|pred|vozy|ukoly|osoby|zivot|cile}`. Zápisy **po položkách**
   (`store.zapis(['e', id], objekt)`), nikdy celý deník.
 - **Pravidla:** zápis jen na úrovni sekcí, ne na `users/$uid` (kaskáda pravidel v RTDB by jinak povolila vše pod ní).
   `ucet` jde zapsat jen jednou a `trialDo` max. 31 dní dopředu.
 - Fotka účtenky: zmenšená na 480 px, JPEG 0,6, uložená v RTDB (`stk/{id}/img`, limit 150 000 znaků).
   Firebase Storage by vyžadoval placený tarif Blaze.
+- **Vzhled (0.4):** `nast` = {desky, stul, papir, linky, font, ink, rezim}. Linky se kreslí JEN v psacích plochách
+  (`.lined`, výška řádku = rozteč linek `--lh`), jinak text „poskakuje“ mezi linkami. Staré `nast.skin` se převádí
+  přes `STARE_SKINY` v data.js. Režim mění úvodní stránku a pořadí menu (REZIMY v data.js).
+- Grafy „kreslené“: pero (wobble ve charts.js) a akvarel (SVG feTurbulence + feDisplacementMap). Bez knihoven.
+- Písma jsou v appce (`app/fonts`, `css/fonty.css`), ne z Google Fonts – kvůli offline a Android appce.
+- Ocenění se počítají z dat (`oceneni()` v logic.js), nic se neukládá a nic se nebere zpět.
 - Zvýraznění v zápisku se ukládá jako `{{y|text}}` (y/p/g/b/o), nikdy jako HTML.
 - **Android:** Capacitor 8 (`android/`, appId `cz.financnidenik.app`, webDir `app`). Widget `ZapisWidget`
   a zkratky otevírají odkaz `financnidenik://zapis` (`?mic=1` = diktování); webová část ho chytá přes plugin App
@@ -45,6 +51,7 @@ Deník ve FinanceFlow zůstává beze změny. Plán: dokument „Finanční den�
 3. Nasazení: nejdřív `firebase deploy --only database` (když se měnila pravidla), pak hosting.
 
 ## Verze
+- **0.4.0** (25. 11. 2026) – finanční kronika: kožené desky s menu, Přehled s akvarelovými grafy, Pokladní kniha, Grafy a statistiky, Cíle, Ocenění, nový Vzhled (režimy, desky, stůl, papír, linky, písmo, barva písma), oprava linek.
 - **0.3.0** (24. 11. 2026) – Kniha života: osoby, osa a mapa života, lékařský archiv s AI vysvětlením, očkovací průkaz, zoubky, růst.
 - **0.2.0** (24. 11. 2026) – trhací bloček (rychlý zápis), zkratky ikony, Android appka s widgetem a diktováním.
 - **0.1.0** (21. 11. 2026) – první verze: kniha, 6 vzhledů, Den/Měsíc/Tankování/Úkolníček/Kategorie/Hledat,

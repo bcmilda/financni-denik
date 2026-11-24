@@ -1,19 +1,34 @@
-// Finanční deník · data.js · v0.3.0
+// Finanční deník · data.js · v0.4.0
 // Vzhledy, písma, výchozí kategorie, prázdný deník a ukázkový měsíc.
 
 import { iso, addD, mk, p2, uid } from './util.js';
 import { ukazkaZivota } from './zivot-data.js';
 
-export const SKINS = [
-  { id: 'kniha', n: 'Starobylá kniha', c: '#5b3620', p: '#f2e4c4', paper: 'linky' },
-  { id: 'sesit', n: 'Linkovaný sešit', c: '#2f77c9', p: '#fff', paper: 'linky' },
-  { id: 'bujo', n: 'Tečkovaný journal', c: '#111', p: '#fbfaf5', paper: 'tecky' },
-  { id: 'kraft', n: 'Kraftový zápisník', c: '#7a5a36', p: '#d9c4a0', paper: 'cisty' },
-  { id: 'minimal', n: 'Čistý minimal', c: '#cdd8d0', p: '#fff', paper: 'ctverecky' },
-  { id: 'noc', n: 'Noční zápisník', c: '#24304d', p: '#1b2336', paper: 'linky', dark: 1 },
+// ---- Vzhled knihy (každá volba zvlášť) ----
+// Desky = barva obálky a menu, stůl = pozadí, papír = barva stránek, linky = typ linkování psacích ploch
+export const DESKY = [
+  { id: 'hneda', n: 'Hnědá kůže', c: '#5b3620', c2: '#3e2414' },
+  { id: 'vinova', n: 'Vínová kůže', c: '#6b1f2a', c2: '#45121b' },
+  { id: 'modra', n: 'Tmavě modrá', c: '#1f2f4f', c2: '#131d33' },
+  { id: 'cerna', n: 'Černá', c: '#232323', c2: '#111' },
+  { id: 'zelena', n: 'Zelené plátno', c: '#2f4a3a', c2: '#1d3026' },
+  { id: 'kraft', n: 'Kraftový karton', c: '#8a6a43', c2: '#6a4f30' },
+];
+export const STUL = [
+  { id: 'dub', n: 'Dubové dřevo' }, { id: 'bridlice', n: 'Tmavá břidlice' }, { id: 'len', n: 'Lněný ubrus' }, { id: 'lampa', n: 'Noc s lampičkou' },
+];
+export const PAPIR = [
+  { id: 'kremova', n: 'Krémový', c: '#f6eedb' }, { id: 'bila', n: 'Bílý', c: '#fdfcf8' }, { id: 'stary', n: 'Starý papír', c: '#efdfb9' },
+  { id: 'seda', n: 'Šedý', c: '#ecebe6' }, { id: 'matova', n: 'Mátový', c: '#e6f0e8' }, { id: 'ruzova', n: 'Růžový', c: '#f7e8e4' },
+  { id: 'nocni', n: 'Noční', c: '#1b2336', dark: 1 },
+];
+export const LINKY = [
+  { id: 'linky', n: 'Linky' }, { id: 'uzke', n: 'Úzké linky' }, { id: 'ctverecky', n: 'Čtverečky' }, { id: 'tecky', n: 'Tečky' },
+  { id: 'pokladni', n: 'Pokladní kniha' }, { id: 'cisty', n: 'Čistý' },
 ];
 export const FONTS = [
   { id: 'caveat', n: 'Ruční', f: "'Caveat',cursive", s: 23 },
+  { id: 'kalam', n: 'Kaligrafie', f: "'Kalam',cursive", s: 18 },
   { id: 'patrick', n: 'Úhledné', f: "'Patrick Hand',cursive", s: 20 },
   { id: 'shantell', n: 'Fixa', f: "'Shantell Sans',sans-serif", s: 16 },
   { id: 'courier', n: 'Psací stroj', f: "'Courier Prime',monospace", s: 16 },
@@ -22,13 +37,27 @@ export const FONTS = [
 ];
 export const INKS = [
   { id: 'modra', n: 'Modrá', c: ['#1f3f9a', '#9fb8ff'] },
+  { id: 'namornicka', n: 'Námořnická', c: ['#1d2f55', '#b9c8ec'] },
   { id: 'cerna', n: 'Černá', c: ['#1d1d1f', '#f1f1f4'] },
   { id: 'sepie', n: 'Sépie', c: ['#6b4423', '#e7c193'] },
   { id: 'zelena', n: 'Zelená', c: ['#1f6b47', '#8fe0b0'] },
   { id: 'cervena', n: 'Červená', c: ['#a5262c', '#ff9a9a'] },
   { id: 'fialova', n: 'Fialová', c: ['#5b2a86', '#d0adff'] },
+  { id: 'tyrkys', n: 'Tyrkysová', c: ['#0f6b74', '#8fe3ea'] },
 ];
-export const PAPERS = [{ id: 'linky', n: 'Linky' }, { id: 'ctverecky', n: 'Čtverečky' }, { id: 'tecky', n: 'Tečky' }, { id: 'cisty', n: 'Čistý' }];
+// Režimy = 4 způsoby zobrazení stejných dat (mění úvodní stránku a pořadí v menu)
+export const REZIMY = [
+  { id: 'zapisnik', n: 'Režim zápisníku', p: 'Hlavně psaní, poznámky a denní záznamy. Minimum grafů.', start: 'den', menu: ['den', 'mesic', 'cile', 'zivot', 'prehled'] },
+  { id: 'pokladni', n: 'Režim pokladní knihy', p: 'Přesná evidence peněz, zůstatků a bilancí. Minimum dekorací.', start: 'pokladni', menu: ['pokladni', 'den', 'prehled', 'grafy'] },
+  { id: 'analyticky', n: 'Analytický režim', p: 'Víc grafů, porovnání, rozpočtů a přehledů.', start: 'prehled', menu: ['prehled', 'grafy', 'den', 'pokladni', 'mesic'] },
+  { id: 'rodinny', n: 'Rodinný režim', p: 'Společné cíle, členové rodiny, vzpomínky a ocenění.', start: 'prehled', menu: ['prehled', 'zivot', 'cile', 'oceneni', 'den'] },
+];
+// Převod vzhledu z verzí 0.1–0.3 (jeden „skin“) na samostatné volby
+export const STARE_SKINY = {
+  kniha: { desky: 'hneda', stul: 'dub', papir: 'stary' }, sesit: { desky: 'modra', stul: 'len', papir: 'bila' },
+  bujo: { desky: 'cerna', stul: 'bridlice', papir: 'bila', linky: 'tecky' }, kraft: { desky: 'kraft', stul: 'len', papir: 'stary' },
+  minimal: { desky: 'cerna', stul: 'len', papir: 'bila', linky: 'cisty' }, noc: { desky: 'modra', stul: 'lampa', papir: 'nocni' },
+};
 export const HL = [{ c: 'y', h: '#ffe14d', n: 'žlutá' }, { c: 'p', h: '#ff8fc8', n: 'růžová' }, { c: 'g', h: '#8df07a', n: 'zelená' }, { c: 'b', h: '#79d2ff', n: 'modrá' }, { c: 'o', h: '#ffb347', n: 'oranžová' }];
 
 // Výchozí kategorie (vlastní si uživatel přidá; tyto smazat nejde, jen přebarvit)
@@ -40,7 +69,7 @@ export const KATS = [
   ['vypl', 'Výplata', '#2e7d32', 'p'], ['prij', 'Ostatní příjem', '#558b2f', 'p'],
 ].map((k, i) => ({ id: k[0], n: k[1], c: k[2], t: k[3], ord: i, vych: true }));
 export const PEN = { ucet: { id: 'ucet', n: 'Bankovní účet', start: 0 }, hot: { id: 'hot', n: 'Hotovost', start: 0 } };
-export const NAST = { skin: 'kniha', font: 'caveat', ink: 'modra', paper: 'linky' };
+export const NAST = { desky: 'hneda', stul: 'dub', papir: 'kremova', linky: 'linky', font: 'caveat', ink: 'namornicka', rezim: 'analyticky', zvuk: false };
 export const TRIAL_DNI = 30;
 
 const byId = arr => Object.fromEntries(arr.map(x => [x.id, x]));
@@ -50,7 +79,7 @@ export function prazdny() {
   const now = Date.now();
   return {
     nast: { ...NAST }, kats: byId(KATS.map(k => ({ ...k }))), pen: JSON.parse(JSON.stringify(PEN)),
-    e: {}, notes: {}, stk: {}, pred: {}, vozy: {}, ukoly: {}, osoby: {}, zivot: {},
+    e: {}, notes: {}, stk: {}, pred: {}, vozy: {}, ukoly: {}, osoby: {}, zivot: {}, cile: {},
     ucet: { vytvoreno: now, trialDo: now + TRIAL_DNI * 864e5 },
   };
 }
@@ -68,7 +97,25 @@ export function ukazka() {
   tank(addD(first, -26), 38, 1444, 82560, 'octavia', 'Tankování na Shellu 38 l');
   tank(addD(first, -40), 8.5, 330, 18610, 'cb500', 'Motorka 8,5 l');
   tank(addD(first, -18), 8, 312, 18790, 'cb500', 'Motorka 8 l, výlet Beskydy');
-  for (let i = 1; i <= 3; i++) { add(addD(first, -i * 30 + 1), 'p', 32000, 'Výplata', 'vypl', []); add(addD(first, -i * 30 + 4), 'v', 23800 + i * 900, 'Výdaje za měsíc (souhrn)', 'ost', []); }
+  // Předchozí měsíce (ať mají grafy z čeho kreslit): výplata + typické výdaje s mírnými výkyvy
+  for (let i = 1; i <= 6; i++) {
+    const m0 = new Date(+first.slice(0, 4), +first.slice(5, 7) - 1 - i, 1), dm = n => iso(new Date(m0.getFullYear(), m0.getMonth(), n));
+    const k = [1, 0.94, 1.08, 0.97, 1.12, 0.9][i - 1];
+    add(dm(1), 'p', 32000 + (i === 3 ? 4500 : 0), i === 3 ? 'Výplata + prémie' : 'Výplata', 'vypl', []);
+    add(dm(1), 'v', 12500, 'Nájem', 'byd', ['nájem']);
+    add(dm(5), 'v', 1850, 'Záloha na elektřinu', 'byd', []);
+    add(dm(9), 'v', Math.round(5200 * k), 'Nákupy potravin za měsíc', 'jidlo', ['týdenní']);
+    add(dm(14), 'v', Math.round(1300 * k), 'Kavárny a obědy', 'rest', ['káva']);
+    add(dm(18), 'v', 428, 'Předplatné', 'predpl', []);
+    add(dm(22), 'v', Math.round(1700 / k), 'Zábava', 'zab', []);
+    if (i === 2) add(dm(12), 'v', 3200, 'Servis auta', 'auto', []);
+    if (i === 4) add(dm(20), 'p', 2500, 'Prodej kola', 'prij', []);
+  }
+  S.cile = {
+    dovolena: { id: 'dovolena', nazev: 'Dovolená u moře', typ: 'dovolena', cil: 60000, nasporeno: 36000, do: (+first.slice(0, 4) + 1) + '-06-30' },
+    rezerva: { id: 'rezerva', nazev: 'Rezerva 100 000 Kč', typ: 'rezerva', cil: 100000, nasporeno: 35000, do: (+first.slice(0, 4) + 1) + '-12-31' },
+    auto: { id: 'auto', nazev: 'Nové auto', typ: 'auto', cil: 250000, nasporeno: 0, do: (+first.slice(0, 4) + 2) + '-12-31' },
+  };
   const L = [
     [1, () => add(dd(1), 'p', 32000, 'Výplata za minulý měsíc', 'vypl', [])],
     [1, () => add(dd(1), 'v', 12500, 'Nájem', 'byd', ['nájem'])],

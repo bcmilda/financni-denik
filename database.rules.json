@@ -62,6 +62,9 @@
             }
           }
         },
+        "cile": {
+          ".write": "auth != null && auth.uid === $uid"
+        },
         "$jine": {
           ".validate": false
         }
