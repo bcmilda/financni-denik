@@ -1,0 +1,37 @@
+# Finanční deník – veřejná ukázka na GitHub Pages
+# Při každém pushi do větve dev se otestuje logika a složka app/ se zkopíruje
+# do větve gh-pages, ze které GitHub zveřejňuje https://bcmilda.github.io/financni-denik/
+# Bez Firebase konfigurace běží appka v režimu bez účtu s ukázkovými daty.
+name: Ukázka na GitHub Pages
+
+on:
+  push:
+    branches: [dev]
+    paths: ['app/**', 'tests/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Testy logiky
+        run: node tests/logic.test.mjs && node tests/store.test.mjs
+      - name: Zveřejnit složku app/ do větve gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./app
+          publish_branch: gh-pages
+          enable_jekyll: false
+          commit_message: 'Ukázka: ${{ github.event.head_commit.message }}'
