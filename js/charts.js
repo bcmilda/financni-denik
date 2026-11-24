@@ -1,4 +1,4 @@
-// Finanční deník · charts.js · v0.2.0
+// Finanční deník · charts.js · v0.3.0
 // Grafy „kreslené perem“: každá čára se kreslí dvakrát s drobným chvěním (vlastní obdoba rough.js).
 
 import { pd, mk, dim, dnes, kc, nf } from './util.js';
@@ -57,6 +57,27 @@ export function grafTank(svg, list) {
     const d = pd(x.e.d);
     s += '<circle cx="' + X(i) + '" cy="' + Y(x.sp) + '" r="4.5" fill="' + ink + '"/><text x="' + X(i) + '" y="' + (Y(x.sp) - 10) + '" text-anchor="middle">' + nf(x.sp, 1) + '</text>';
     if (i % kazdy === 0 || i === n - 1) s += '<text x="' + X(i) + '" y="' + (H - 8) + '" text-anchor="middle">' + d.getDate() + '. ' + (d.getMonth() + 1) + '.</text>';
+  });
+  svg.innerHTML = s;
+}
+
+// Jednoduchá řada v čase (růst: výška nebo váha) – body [{ d, v }]
+export function grafRada(svg, body, jednotka, des) {
+  const { ink, ui } = barvy(), W = svg.clientWidth, H = svg.clientHeight;
+  if (body.length < 1) { svg.innerHTML = '<text x="' + (W / 2) + '" y="' + (H / 2) + '" text-anchor="middle">Zatím žádné měření</text>'; return; }
+  const t = s => pd(s).getTime(), t0 = t(body[0].d), t1 = Math.max(t(body[body.length - 1].d), t0 + 864e5);
+  const vs = body.map(b => b.v), lo = Math.min(...vs), hi = Math.max(...vs), pad = Math.max(1, (hi - lo) * 0.15);
+  const a = Math.max(0, lo - pad), b = hi + pad, l = 44, r = 18, tp = 18, bt = 28;
+  const X = s => body.length === 1 ? (l + W - r) / 2 : l + 10 + (t(s) - t0) / (t1 - t0) * (W - l - r - 20), Y = v => H - bt - (v - a) / (b - a) * (H - tp - bt);
+  let s = pen(seg(l, H - bt, W - r, H - bt, 8), 41, ui, 1.3) + pen(seg(l, tp, l, H - bt, 6), 43, ui, 1.3);
+  const step = nice((b - a) / 1.2);
+  for (let y = Math.ceil(a / step) * step; y < b; y += step) s += '<text x="' + (l - 8) + '" y="' + (Y(y) + 4) + '" text-anchor="end">' + nf(y, 0) + '</text>';
+  if (body.length > 1) s += pen(body.map(p => [X(p.d), Y(p.v)]), 47, ink, 2.4);
+  const kazdy = Math.ceil(body.length / Math.max(1, Math.floor((W - l - r) / 70)));
+  body.forEach((p, i) => {
+    s += '<circle cx="' + X(p.d) + '" cy="' + Y(p.v) + '" r="4" fill="' + ink + '"/>';
+    if (i === body.length - 1) s += '<text x="' + (X(p.d) - 8) + '" y="' + (Y(p.v) - 10) + '" text-anchor="end">' + nf(p.v, des) + ' ' + jednotka + '</text>';
+    if (i % kazdy === 0 || i === body.length - 1) s += '<text x="' + X(p.d) + '" y="' + (H - 8) + '" text-anchor="middle">' + p.d.slice(0, 4) + '</text>';
   });
   svg.innerHTML = s;
 }

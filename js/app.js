@@ -1,4 +1,4 @@
-// Finanční deník · app.js · v0.2.0
+// Finanční deník · app.js · v0.3.0
 // Start, přihlášení, vykreslení stránek a všechny akce uživatele.
 
 import { VERZE, iso, pd, addD, mk, dnes, esc, kc, nf, num, uid, vals } from './util.js';
@@ -6,13 +6,14 @@ import { SKINS, FONTS, INKS, PAPERS, ukazka } from './data.js';
 import { parse, tachOk, hledej, deser } from './logic.js';
 import { st, startLocal, resetLocal, startCloud as storeCloud, zCloudu, zapis } from './store.js';
 import { vDen, vMesic, vTank, vUkoly, vKat, vHledat } from './views.js';
-import { grafMesic, grafTank } from './charts.js';
+import { grafMesic, grafTank, grafRada } from './charts.js';
 import { FIREBASE } from './config.js';
 import { diktuj, hlasDostupny, hlasChyba } from './hlas.js';
-import { initBlocek, otevritBlocek } from './blocek.js';
+import { initBlocek, otevritBlocek, toast } from './blocek.js';
+import { vZivot, zivotAkce, bindZivot, rustData } from './zivot.js';
 
 const $ = s => document.querySelector(s);
-const VIEWS = { den: vDen, mesic: vMesic, tankovani: vTank, ukoly: vUkoly, kategorie: vKat, hledat: vHledat };
+const VIEWS = { den: vDen, mesic: vMesic, tankovani: vTank, ukoly: vUkoly, zivot: vZivot, kategorie: vKat, hledat: vHledat };
 const UIKEY = 'fd-ui-1';
 let U = { view: 'den', day: dnes(), voz: '', tagSel: '', q: '' };
 try { Object.assign(U, JSON.parse(localStorage.getItem(UIKEY)) || {}); } catch (err) { /* bez úložiště */ }
@@ -40,6 +41,7 @@ function render() {
   lastKey = key;
   if (U.view === 'den') bindDen();
   if (U.view === 'hledat') bindHledat();
+  if (U.view === 'zivot') bindZivot(U, { render, toast, saveUI });
   if (ro) ro.disconnect();
   ro = new ResizeObserver(kresli);
   document.querySelectorAll('.fig svg').forEach(s => ro.observe(s));
@@ -47,6 +49,9 @@ function render() {
 }
 function kresli() {
   const m = $('#mch'); if (m) grafMesic(m, S(), mk(U.day));
+  const gv = $('#gv'), gh = $('#gh');
+  if (gv) grafRada(gv, rustData(S(), U).filter(z => z.vyska).map(z => ({ d: z.d, v: z.vyska })), 'cm', 0);
+  if (gh) grafRada(gh, rustData(S(), U).filter(z => z.vaha).map(z => ({ d: z.d, v: z.vaha })), 'kg', 1);
   const t = $('#tch');
   if (t) { const v = U.voz && S().vozy[U.voz] ? U.voz : (vals(S().vozy)[0] || {}).id; grafTank(t, vals(S().e).filter(e => e.tema === 'tank' && e.pole && e.pole.voz === v)); }
 }
@@ -220,6 +225,7 @@ document.addEventListener('click', ev => {
     case 'today': ev.preventDefault(); U.day = dnes(); break;
     case 'mprev': mPosun(-1); break;
     case 'mnext': mPosun(1); break;
+    case 'goziv': ev.preventDefault(); U.view = 'zivot'; U.osoba = id; U.ztab = t.dataset.tab || 'mapa'; try { history.replaceState(null, '', '#zivot'); } catch (err) { /* rámeček */ } break;
     case 'goday': ev.preventDefault(); U.day = id; U.view = 'den'; try { history.replaceState(null, '', '#den'); } catch (err) { /* náhled v rámečku */ } break;
     case 'typ': Q.typ = t.dataset.v; Q.katTouched = false; break;
     case 'add': pridej(); return;
@@ -257,7 +263,7 @@ document.addEventListener('click', ev => {
     case 'reset': resetLocal(id === 'demo'); break;
     case 'logout': if (api) api.odhlasit(); return;
     case 'showlogin': ukazLogin(); return;
-    default: return;
+    default: { const r = zivotAkce(a, t, U, { render, toast }); if (!r || r === 'stop') return; }
   }
   saveUI(); render();
 });
@@ -341,6 +347,7 @@ async function boot() {
       api = a; user = u;
       if (!u) { if (st.mode === 'cloud') { st.S = null; st.mode = 'local'; } if (!S() || st.mode !== 'local') ukazLogin(''); return; }
       storeCloud(u.uid, api.writer(u.uid));
+      st.token = api.token;
       if (S()) spust();
       api.odebirej(u.uid, data => { zCloudu(data); if ($('#app').hidden) spust(); });
     });

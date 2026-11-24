@@ -1,4 +1,4 @@
-// Finanční deník · logic.js · v0.2.0
+// Finanční deník · logic.js · v0.3.0
 // Čistá logika bez DOM: rozpoznání zápisu, tankování, součty, hledání.
 // Testy: tests/logic.test.mjs (node tests/logic.test.mjs)
 
@@ -89,5 +89,6 @@ export function hledej(S, q) {
   Object.entries(S.notes || {}).forEach(([d, n]) => { const p = plain(n); const i = fold(p).indexOf(f); if (i >= 0) out.push({ typ: 'n', d, text: p.slice(Math.max(0, i - 40), i + 80) }); });
   vals(S.stk).forEach(s => { const t = (s.obchod || '') + ' ' + (s.pol || []).map(p => p[0]).join(' '); if (fold(t).includes(f)) out.push({ typ: 's', d: s.d, s }); });
   vals(S.ukoly).forEach(u => { if (fold(u.text).includes(f)) out.push({ typ: 'u', d: u.termin || (u.mesic + '-01'), u }); });
+  vals(S.zivot).forEach(z => { const t = [z.titul, z.text, z.lekar, z.duvod, z.prepis, z.latka, z.proti, z.vysv && z.vysv.text, z.vysv && z.vysv.shrnuti].filter(Boolean).join(' '); if (fold(t).includes(f)) out.push({ typ: 'z', d: z.d, z }); });
   return out.sort((a, b) => b.d.localeCompare(a.d));
 }

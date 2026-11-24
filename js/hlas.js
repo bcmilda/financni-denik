@@ -1,4 +1,4 @@
-// Finanční deník · hlas.js · v0.2.0
+// Finanční deník · hlas.js · v0.3.0
 // Diktování: v Android appce přes nativní rozpoznávání řeči (plugin Diktat v android/),
 // v prohlížeči přes Web Speech API. Vrací Promise s rozpoznaným textem.
 
