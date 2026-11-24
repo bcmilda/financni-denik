@@ -1,0 +1,8 @@
+{
+  "appId": "cz.financnidenik.app",
+  "appName": "Finanční deník",
+  "webDir": "app",
+  "android": {
+    "backgroundColor": "#2a1c12"
+  }
+}

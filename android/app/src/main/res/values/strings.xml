@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Finanční deník</string>
+    <string name="title_activity_main">Finanční deník</string>
+    <string name="package_name">cz.financnidenik.app</string>
+    <string name="custom_url_scheme">cz.financnidenik.app</string>
+    <string name="widget_popis">Rychlý zápis výdaje nebo diktování</string>
+    <string name="zkratka_vydaj">Nový výdaj</string>
+    <string name="zkratka_vydaj_dlouha">Rychlý zápis výdaje</string>
+    <string name="zkratka_mic">Diktovat</string>
+    <string name="zkratka_mic_dlouha">Diktovat zápis</string>
+</resources>

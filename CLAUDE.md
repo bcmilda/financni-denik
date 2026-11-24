@@ -25,13 +25,21 @@ Deník ve FinanceFlow zůstává beze změny. Plán: dokument „Finanční den�
 - Fotka účtenky: zmenšená na 480 px, JPEG 0,6, uložená v RTDB (`stk/{id}/img`, limit 150 000 znaků).
   Firebase Storage by vyžadoval placený tarif Blaze.
 - Zvýraznění v zápisku se ukládá jako `{{y|text}}` (y/p/g/b/o), nikdy jako HTML.
+- **Android:** Capacitor 8 (`android/`, appId `cz.financnidenik.app`, webDir `app`). Widget `ZapisWidget`
+  a zkratky otevírají odkaz `financnidenik://zapis` (`?mic=1` = diktování); webová část ho chytá přes plugin App
+  (`appUrlOpen`, `getLaunchUrl`) a otevře bloček. Diktování: vlastní plugin `DiktatPlugin` (RecognizerIntent),
+  protože WebView neumí Web Speech API. APK staví GitHub Actions (`android.yml`) → Releases „Android náhled“.
+- Náhledové APK je podepsané veřejným ladicím klíčem `android/app/nahled-debug.keystore` (heslo `android`).
+  Klíč pro Google Play bude jiný a do repozitáře nepatří.
+- Google přihlášení v Android appce: popup ve WebView nefunguje → později plugin @capacitor-firebase/authentication.
 
 ## Postup práce
 1. Změna kódu → `node tests/logic.test.mjs` a `node tests/store.test.mjs`.
-2. Zvýšit verzi v `js/util.js` (VERZE), v `sw.js` (CACHE) a v hlavičkách souborů.
+2. Zvýšit verzi v `js/util.js` (VERZE), v `sw.js` (CACHE), `package.json`, `android/app/build.gradle` (versionName) a v hlavičkách souborů.
 3. Nasazení: nejdřív `firebase deploy --only database` (když se měnila pravidla), pak hosting.
 
 ## Verze
+- **0.2.0** (24. 11. 2026) – trhací bloček (rychlý zápis), zkratky ikony, Android appka s widgetem a diktováním.
 - **0.1.0** (21. 11. 2026) – první verze: kniha, 6 vzhledů, Den/Měsíc/Tankování/Úkolníček/Kategorie/Hledat,
   přihlášení, synchronizace, offline, zkušební měsíc.
 

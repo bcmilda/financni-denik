@@ -1,4 +1,4 @@
-// Finanční deník · app.js · v0.1.0
+// Finanční deník · app.js · v0.2.0
 // Start, přihlášení, vykreslení stránek a všechny akce uživatele.
 
 import { VERZE, iso, pd, addD, mk, dnes, esc, kc, nf, num, uid, vals } from './util.js';
@@ -8,6 +8,8 @@ import { st, startLocal, resetLocal, startCloud as storeCloud, zCloudu, zapis } 
 import { vDen, vMesic, vTank, vUkoly, vKat, vHledat } from './views.js';
 import { grafMesic, grafTank } from './charts.js';
 import { FIREBASE } from './config.js';
+import { diktuj, hlasDostupny, hlasChyba } from './hlas.js';
+import { initBlocek, otevritBlocek } from './blocek.js';
 
 const $ = s => document.querySelector(s);
 const VIEWS = { den: vDen, mesic: vMesic, tankovani: vTank, ukoly: vUkoly, kategorie: vKat, hledat: vHledat };
@@ -17,7 +19,6 @@ try { Object.assign(U, JSON.parse(localStorage.getItem(UIKEY)) || {}); } catch (
 U.day = dnes();
 const saveUI = () => { try { localStorage.setItem(UIKEY, JSON.stringify(U)); } catch (err) { /* bez úložiště */ } };
 const Q = { typ: 'v', text: '', pen: 'ucet', katTouched: false, auto: {} };
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let api = null, user = null, cekaRender = false, lastKey = '', ro = null;
 const S = () => st.S;
 const isDark = () => !!(SKINS.find(s => s.id === S().nast.skin) || {}).dark;
@@ -32,7 +33,7 @@ function render() {
   document.querySelectorAll('.nav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + U.view));
   $('#stav').innerHTML = stavHTML();
   if (!$('#panel').hidden) $('#panelIn').innerHTML = panelHTML();
-  const [L, R] = (VIEWS[U.view] || vDen)(S(), U, Q, !!SR);
+  const [L, R] = (VIEWS[U.view] || vDen)(S(), U, Q, hlasDostupny());
   $('#pL').innerHTML = L; $('#pR').innerHTML = R;
   const key = U.view + U.day;
   if (lastKey && key !== lastKey) { const bk = $('#book'); bk.classList.remove('turn'); void bk.offsetWidth; bk.classList.add('turn'); }
@@ -182,22 +183,15 @@ function zvyrazni(c) {
   ulozZapisek();
   note.innerHTML = deser(S().notes[U.day]);
 }
-let rec = null;
-function diktuj(btn) {
+function mluv(btn) {
   const kam = btn.dataset.id === 'note' ? $('#note') : $('#q');
-  if (rec) { rec.stop(); return; }
-  try {
-    rec = new SR(); rec.lang = 'cs-CZ'; rec.interimResults = false; rec.maxAlternatives = 1;
-    btn.classList.add('rec');
-    rec.onresult = ev => {
-      const t = ev.results[0][0].transcript;
-      if (kam.id === 'q') { kam.value = (kam.value ? kam.value + ' ' : '') + t; preview(); }
-      else { kam.append(document.createTextNode((kam.textContent ? ' ' : '') + t)); ulozZapisek(); }
-    };
-    rec.onerror = ev => { const h = $('#qprev') || $('#hlHint'); if (h) h.textContent = ev.error === 'not-allowed' ? 'Mikrofon není povolený.' : 'Diktování se nepovedlo, zkus to znovu.'; };
-    rec.onend = () => { btn.classList.remove('rec'); rec = null; };
-    rec.start();
-  } catch (err) { btn.classList.remove('rec'); rec = null; }
+  btn.classList.add('rec');
+  diktuj(kam.id === 'q' ? 'Řekni třeba: káva šedesát pět' : 'Diktuj zápisek').then(t => {
+    if (!t) return;
+    if (kam.id === 'q') { kam.value = (kam.value ? kam.value + ' ' : '') + t; preview(); }
+    else { kam.append(document.createTextNode((kam.textContent ? ' ' : '') + t)); ulozZapisek(); }
+  }).catch(e => { const m = hlasChyba(e), h = $('#qprev') || $('#hlHint'); if (m && h) h.textContent = m; })
+    .finally(() => btn.classList.remove('rec'));
 }
 
 // ---------- hledání ----------
@@ -229,7 +223,7 @@ document.addEventListener('click', ev => {
     case 'goday': ev.preventDefault(); U.day = id; U.view = 'den'; try { history.replaceState(null, '', '#den'); } catch (err) { /* náhled v rámečku */ } break;
     case 'typ': Q.typ = t.dataset.v; Q.katTouched = false; break;
     case 'add': pridej(); return;
-    case 'mic': diktuj(t); return;
+    case 'mic': mluv(t); return;
     case 'del': { const e = D.e[id]; if (e && e.rc) zapis(['stk', e.rc], null); zapis(['e', id], null); break; }
     case 'rcok': {
       const amt = num($('#rcK').value), ob = $('#rcO').value.trim();
@@ -277,7 +271,32 @@ $('#vzBtn').addEventListener('click', () => {
   $('#vzBtn').setAttribute('aria-expanded', String(!p.hidden));
   if (!p.hidden) $('#panelIn').innerHTML = panelHTML();
 });
-function route() { const h = location.hash.slice(1); if (VIEWS[h]) U.view = h; saveUI(); render(); }
+function route() {
+  const h = location.hash.slice(1);
+  if (h === 'zapis' || h === 'zapis-mic') {
+    // Zkratka z plochy: otevřít bloček nad stránkou Den
+    U.view = 'den';
+    try { history.replaceState(null, '', '#den'); } catch (err) { /* náhled v rámečku */ }
+    saveUI(); render(); otevritBlocek({ mic: h === 'zapis-mic' }); return;
+  }
+  if (VIEWS[h]) U.view = h;
+  saveUI(); render();
+}
+const NATIVNI = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+// Android appka: widget a zkratky otevírají financnidenik://zapis (?mic=1)
+function odkazApp(url) {
+  if (!url || !/zapis/.test(url)) return;
+  U.view = 'den'; saveUI(); render();
+  otevritBlocek({ mic: /mic=1/.test(url) });
+}
+let nativniHotovo = false;
+function nativniOdkazy() {
+  if (!NATIVNI || nativniHotovo) return;
+  nativniHotovo = true;
+  const App = window.Capacitor.Plugins.App || window.Capacitor.registerPlugin('App');
+  App.addListener('appUrlOpen', ev => odkazApp(ev && ev.url));
+  App.getLaunchUrl().then(r => odkazApp(r && r.url)).catch(() => {});
+}
 window.addEventListener('hashchange', route);
 
 // ---------- přihlášení ----------
@@ -305,10 +324,15 @@ async function prihlas(co) {
     else if (co === 'reset') { if (!em) { msg.textContent = 'Napiš nahoru svůj e-mail a klikni znovu.'; return; } await api.reset(em); msg.textContent = 'Poslal jsem odkaz na nastavení hesla na ' + em + '.'; }
   } catch (e) { msg.textContent = (api.chyba || (x => x.message))(e); }
 }
-function spust() { $('#login').hidden = true; $('#app').hidden = false; st.onChange = zmenaDat; route(); }
+let blocekInit = false;
+function spust() {
+  $('#login').hidden = true; $('#app').hidden = false; st.onChange = zmenaDat;
+  if (!blocekInit) { initBlocek(() => render()); blocekInit = true; }
+  route(); nativniOdkazy();
+}
 
 async function boot() {
-  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+  if (!NATIVNI && 'serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
   if (!FIREBASE.apiKey) { startLocal(true); spust(); return; }
   ukazLogin('Načítám…');
   try {

@@ -1,4 +1,4 @@
-// Finanční deník · logic.js · v0.1.0
+// Finanční deník · logic.js · v0.2.0
 // Čistá logika bez DOM: rozpoznání zápisu, tankování, součty, hledání.
 // Testy: tests/logic.test.mjs (node tests/logic.test.mjs)
 

@@ -1,0 +1,20 @@
+{
+  "name": "financni-denik",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Finanční deník – zápisník na peníze, který se počítá sám",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/logic.test.mjs && node tests/store.test.mjs",
+    "android:sync": "cap sync android",
+    "android:open": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.6.2",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.6.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.6.2"
+  }
+}

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Zkratky po dlouhém podržení ikony appky -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="vydaj" android:enabled="true" android:icon="@drawable/ic_kniha"
+        android:shortcutShortLabel="@string/zkratka_vydaj" android:shortcutLongLabel="@string/zkratka_vydaj_dlouha">
+        <intent android:action="android.intent.action.VIEW" android:data="financnidenik://zapis"
+            android:targetPackage="cz.financnidenik.app" android:targetClass="cz.financnidenik.app.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="diktovat" android:enabled="true" android:icon="@drawable/ic_mic"
+        android:shortcutShortLabel="@string/zkratka_mic" android:shortcutLongLabel="@string/zkratka_mic_dlouha">
+        <intent android:action="android.intent.action.VIEW" android:data="financnidenik://zapis?mic=1"
+            android:targetPackage="cz.financnidenik.app" android:targetClass="cz.financnidenik.app.MainActivity" />
+    </shortcut>
+</shortcuts>

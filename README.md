@@ -1,7 +1,7 @@
 # Finanční deník
 
 Zápisník na peníze, který se počítá sám. Samostatná appka vycházející z Deníku ve FinanceFlow.
-Verze **0.1.0** (21. 11. 2026).
+Verze **0.2.0** (24. 11. 2026).
 
 ## Co umí v0.1
 
@@ -18,6 +18,22 @@ Verze **0.1.0** (21. 11. 2026).
 - Zkušební měsíc zdarma (platby přijdou ve verzi 0.5).
 
 Bez vyplněné Firebase konfigurace běží appka v **režimu bez účtu** s ukázkovými daty (vše v prohlížeči).
+
+## Android appka a widget (od 0.2.0)
+
+Appka pro Android vzniká z téže webové části (Capacitor) a má navíc:
+- **widget na plochu** se dvěma tlačítky: „+ Výdaj“ (rychlý zápis) a „Diktovat“ (zápis hlasem),
+- **zkratky** po dlouhém podržení ikony (Nový výdaj, Diktovat),
+- diktování přes rozpoznávání řeči v telefonu.
+
+**Instalace do telefonu:** na GitHubu otevři *Releases → Android náhled*, v telefonu stáhni soubor `.apk`
+a otevři ho (Android se jednou zeptá, jestli povolit instalaci z prohlížeče). Novější sestavení jde
+nainstalovat přes starší. Každý push do větve `dev` sestaví nové APK automaticky (GitHub Actions).
+
+**Widget:** dlouze podrž prázdné místo na ploše → Widgety → Finanční deník → přetáhni na plochu.
+
+Přihlášení Googlem v Android appce zatím nefunguje (potřebuje nativní plugin, přijde s Firebase).
+E-mail a heslo fungovat bude.
 
 ## Spuštění na počítači
 
@@ -71,5 +87,9 @@ app/                 vše, co jde na hosting
   sw.js              offline mezipaměť
 database.rules.json  pravidla databáze
 firebase.json        hosting + pravidla
+  js/blocek.js       trhací bloček (rychlý zápis), otevírá ho widget a zkratky
+  js/hlas.js         diktování (Android: plugin Diktat, prohlížeč: Web Speech)
+android/             Android appka (Capacitor), widget ZapisWidget, plugin DiktatPlugin
 tests/               testy v Node
+.github/workflows/   ukázka na GitHub Pages, sestavení Android APK
 ```

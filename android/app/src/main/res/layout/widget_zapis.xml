@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget Finančního deníku: kožená lišta se dvěma papírovými tlačítky -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="8dp"
+    android:background="@drawable/widget_bg">
+
+    <ImageView
+        android:id="@+id/w_kniha"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:padding="4dp"
+        android:src="@drawable/ic_kniha"
+        android:contentDescription="Otevřít deník" />
+
+    <TextView
+        android:id="@+id/w_vydaj"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_weight="1"
+        android:layout_marginStart="6dp"
+        android:background="@drawable/widget_btn"
+        android:gravity="center"
+        android:text="+ Výdaj"
+        android:textColor="#2A2117"
+        android:textSize="17sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/w_mic"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_weight="1"
+        android:layout_marginStart="6dp"
+        android:background="@drawable/widget_btn"
+        android:drawableStart="@drawable/ic_mic"
+        android:drawablePadding="4dp"
+        android:gravity="center"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:text="Diktovat"
+        android:textColor="#2A2117"
+        android:textSize="17sp"
+        android:textStyle="bold" />
+</LinearLayout>
