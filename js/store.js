@@ -1,10 +1,10 @@
-// Finanční deník · store.js · v0.3.0
+// Finanční deník · store.js · v0.4.0
 // Jediné místo, kde se mění data. Dva režimy:
 //   local – bez účtu, vše v localStorage (ukázka / vyzkoušení)
 //   cloud – Firebase RTDB users/{uid}/…, každá změna se zapisuje po položkách
 //           (e/{id}, notes/{den}…), ne celý deník najednou. Kopie v localStorage = rychlý start a offline.
 
-import { prazdny, ukazka } from './data.js';
+import { prazdny, ukazka, STARE_SKINY } from './data.js';
 
 export const st = { S: null, mode: 'local', uid: null, cloud: null, onChange: () => {} };
 const LOCAL = 'fd-local-1';
@@ -18,7 +18,9 @@ export function doplnit(S) {
   const d = prazdny();
   const o = Object.assign({}, S || {});
   for (const k of Object.keys(d)) if (o[k] == null) o[k] = k === 'ucet' ? null : d[k];
-  o.nast = Object.assign({}, d.nast, o.nast || {});
+  const st0 = o.nast || {};
+  o.nast = Object.assign({}, d.nast, st0.skin && !st0.desky ? STARE_SKINY[st0.skin] || {} : {}, st0);
+  if (st0.paper && !st0.linky) o.nast.linky = st0.paper;
   Object.values(o.e || {}).forEach(e => { e.tagy = e.tagy || []; });
   return o;
 }

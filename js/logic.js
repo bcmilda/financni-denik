@@ -1,4 +1,4 @@
-// Finanční deník · logic.js · v0.3.0
+// Finanční deník · logic.js · v0.4.0
 // Čistá logika bez DOM: rozpoznání zápisu, tankování, součty, hledání.
 // Testy: tests/logic.test.mjs (node tests/logic.test.mjs)
 
@@ -91,4 +91,74 @@ export function hledej(S, q) {
   vals(S.ukoly).forEach(u => { if (fold(u.text).includes(f)) out.push({ typ: 'u', d: u.termin || (u.mesic + '-01'), u }); });
   vals(S.zivot).forEach(z => { const t = [z.titul, z.text, z.lekar, z.duvod, z.prepis, z.latka, z.proti, z.vysv && z.vysv.text, z.vysv && z.vysv.shrnuti].filter(Boolean).join(' '); if (fold(t).includes(f)) out.push({ typ: 'z', d: z.d, z }); });
   return out.sort((a, b) => b.d.localeCompare(a.d));
+}
+
+// ---------- v0.4: přehledy, pokladní kniha, ocenění ----------
+const posunYm = (ym, n) => { const d = new Date(+ym.slice(0, 4), +ym.slice(5, 7) - 1 + n, 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); };
+export { posunYm };
+
+// Příjmy a výdaje po měsících (n měsíců končících ymDo)
+export function mesice(S, ymDo, n) {
+  const out = [];
+  for (let i = n - 1; i >= 0; i--) { const ym = posunYm(ymDo, -i), l = monthE(S, ym); out.push({ ym, inc: sumT(l, 'p'), exp: sumT(l, 'v') }); }
+  return out;
+}
+// Výdaje po kategoriích za období (včetně krajních měsíců) – [[kat, součet]] od největšího
+export function katObdobi(S, ymOd, ymDo) {
+  const m = {};
+  vals(S.e).filter(e => e.typ === 'v' && mk(e.d) >= ymOd && mk(e.d) <= ymDo).forEach(e => { m[e.kat] = (m[e.kat] || 0) + e.kc; });
+  return Object.entries(m).sort((a, b) => b[1] - a[1]);
+}
+// Souhrn měsíce s porovnáním na minulý
+export function souhrnMesice(S, ym) {
+  const l = monthE(S, ym), p = monthE(S, posunYm(ym, -1));
+  const inc = sumT(l, 'p'), exp = sumT(l, 'v'), pInc = sumT(p, 'p'), pExp = sumT(p, 'v');
+  const pct = (a, b) => (b > 0 ? Math.round((a - b) / b * 100) : null);
+  return { inc, exp, zust: inc - exp, pInc, pExp, zInc: pct(inc, pInc), zExp: pct(exp, pExp), zZust: pInc - pExp !== 0 ? pct(inc - exp, pInc - pExp) : null, kats: katObdobi(S, ym, ym) };
+}
+// Stav peněz k začátku dne `datum` (bez něj) – všechny peněženky, nebo jedna
+export function stavKDatu(S, datum, penId) {
+  const pens = penId ? [penId] : Object.keys(S.pen || {});
+  const start = pens.reduce((s, id) => s + (((S.pen || {})[id] || {}).start || 0), 0);
+  return start + vals(S.e).filter(e => e.d < datum && (!penId || (e.pen || 'ucet') === penId)).reduce((s, e) => s + (e.typ === 'p' ? e.kc : -e.kc), 0);
+}
+
+// Ocenění: jen věci, které jdou poctivě spočítat z dat. Appka nikdy netrestá – nezískané jsou jen „zatím ne“.
+export const OCENENI = [
+  { id: 'prvni', n: 'První zápis', p: 'Zapsal/a jsi první pohyb peněz.', c: '#c9a227', i: 'pero' },
+  { id: 'tyden', n: 'Týden v řadě', p: '7 dní za sebou aspoň jeden zápis.', c: '#2e8b6e', i: 'kalendar' },
+  { id: 'plus', n: 'Měsíc v plusu', p: 'Uzavřený měsíc, kdy příjmy převýšily výdaje.', c: '#3d7ea6', i: 'mince' },
+  { id: 'plan', n: 'Plán dodržen', p: 'Uzavřený měsíc s výdaji do zapsané predikce.', c: '#7b5ea7', i: 'fajfka' },
+  { id: 'cil', n: 'Cíl splněn', p: 'Našetřeno na celý cíl.', c: '#d1495b', i: 'vlajka' },
+  { id: 'pulcil', n: 'V půlce cesty', p: 'Polovina některého cíle je našetřená.', c: '#e8a33d', i: 'hora' },
+  { id: 'ridic', n: 'Řidič s přehledem', p: '5 tankování se stavem tachometru.', c: '#30638e', i: 'auto' },
+  { id: 'uctenky', n: 'Sběratel účtenek', p: '10 vlepených účtenek.', c: '#8d6a9f', i: 'uctenka' },
+  { id: 'kronikar', n: 'Kronikář', p: '10 záznamů v Knize života.', c: '#b5838d', i: 'kniha' },
+  { id: 'rok', n: 'Rok s deníkem', p: 'Rok od prvního zápisu.', c: '#a5262c', i: 'hvezda' },
+];
+export function oceneni(S, dnesD) {
+  const e = vals(S.e).sort((a, b) => a.d.localeCompare(b.d)), ymNow = mk(dnesD), dny = [...new Set(e.map(x => x.d))].sort();
+  const g = {};
+  if (e.length) g.prvni = e[0].d;
+  for (let i = 6; i < dny.length; i++) {
+    const a = new Date(dny[i - 6]), b = new Date(dny[i]);
+    if (Math.round((b - a) / 864e5) === 6) { g.tyden = dny[i]; break; }
+  }
+  const yms = [...new Set(e.map(x => mk(x.d)))].filter(ym => ym < ymNow).sort();
+  for (const ym of yms) {
+    const l = monthE(S, ym), inc = sumT(l, 'p'), exp = sumT(l, 'v');
+    if (!g.plus && inc > exp && inc > 0) g.plus = ym + '-28';
+    const pr = (S.pred || {})[ym];
+    if (!g.plan && pr && exp <= pr.vydaje) g.plan = ym + '-28';
+  }
+  const cile = vals(S.cile);
+  if (cile.some(c => c.cil > 0 && c.nasporeno >= c.cil)) g.cil = dnesD;
+  if (cile.some(c => c.cil > 0 && c.nasporeno >= c.cil / 2)) g.pulcil = dnesD;
+  const t = e.filter(x => x.tema === 'tank' && x.pole && x.pole.tach > 0);
+  if (t.length >= 5) g.ridic = t[4].d;
+  const s = vals(S.stk).sort((a, b) => a.d.localeCompare(b.d));
+  if (s.length >= 10) g.uctenky = s[9].d;
+  if (vals(S.zivot).length >= 10) g.kronikar = dnesD;
+  if (e.length && (new Date(dnesD) - new Date(e[0].d)) / 864e5 >= 365) g.rok = dnesD;
+  return OCENENI.map(o => ({ ...o, kdy: g[o.id] || null }));
 }

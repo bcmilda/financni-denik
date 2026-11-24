@@ -1,19 +1,44 @@
-// Finanční deník · app.js · v0.3.0
+// Finanční deník · app.js · v0.4.0
 // Start, přihlášení, vykreslení stránek a všechny akce uživatele.
 
 import { VERZE, iso, pd, addD, mk, dnes, esc, kc, nf, num, uid, vals } from './util.js';
-import { SKINS, FONTS, INKS, PAPERS, ukazka } from './data.js';
+import { DESKY, PAPIR, FONTS, INKS, REZIMY, ukazka } from './data.js';
 import { parse, tachOk, hledej, deser } from './logic.js';
 import { st, startLocal, resetLocal, startCloud as storeCloud, zCloudu, zapis } from './store.js';
 import { vDen, vMesic, vTank, vUkoly, vKat, vHledat } from './views.js';
-import { grafMesic, grafTank, grafRada } from './charts.js';
+import { grafMesic, grafTank, grafRada, grafSloupce, grafKolac, grafBudik } from './charts.js';
+import { vPrehled, vPokladni, vGrafy, vCile, vOceneni, vVzhled, kronikaAkce, grafyObdobi } from './kronika.js';
+import { mesice, souhrnMesice, katObdobi, posunYm } from './logic.js';
 import { FIREBASE } from './config.js';
 import { diktuj, hlasDostupny, hlasChyba } from './hlas.js';
 import { initBlocek, otevritBlocek, toast } from './blocek.js';
 import { vZivot, zivotAkce, bindZivot, rustData } from './zivot.js';
 
 const $ = s => document.querySelector(s);
-const VIEWS = { den: vDen, mesic: vMesic, tankovani: vTank, ukoly: vUkoly, zivot: vZivot, kategorie: vKat, hledat: vHledat };
+const VIEWS = { prehled: vPrehled, den: vDen, pokladni: vPokladni, mesic: vMesic, grafy: vGrafy, cile: vCile, oceneni: vOceneni, zivot: vZivot, tankovani: vTank, kategorie: vKat, hledat: vHledat,
+  vzhled: (S, U) => vVzhled(S, U, { ucet: ucetHTML() }), ukoly: vCile };
+// Menu v kožených deskách: [stránka, název, ikonka]
+const MENU = [
+  ['prehled', 'Přehled', '<path d="M3 11l9-7 9 7v9h-6v-6H9v6H3z"/>'],
+  ['den', 'Den a zápis', '<path d="M4 20l4-1L19 8l-3-3L5 16zM14 7l3 3"/>'],
+  ['pokladni', 'Pokladní kniha', '<path d="M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2zM5 18a2 2 0 0 1 2-2h12M9 8h6M9 11h6"/>'],
+  ['mesic', 'Měsíc a plán', '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>'],
+  ['grafy', 'Grafy a statistiky', '<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>'],
+  ['cile', 'Cíle a úkoly', '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".8"/>'],
+  ['oceneni', 'Ocenění', '<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8"/>'],
+  ['zivot', 'Kniha života', '<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>'],
+  ['tankovani', 'Tankování', '<path d="M5 20V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v15M4 20h11M7 8h5M14 9h2a2 2 0 0 1 2 2v5a1.5 1.5 0 0 0 3 0V8l-3-3"/>'],
+  ['kategorie', 'Kategorie a peněženky', '<path d="M4 12V5a1 1 0 0 1 1-1h7l8 8-8 8z"/><circle cx="8.5" cy="8.5" r="1.3"/>'],
+  ['hledat', 'Hledat', '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>'],
+  ['vzhled', 'Vzhled a nastavení', '<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>'],
+];
+function menuHTML() {
+  const r = REZIMY.find(x => x.id === S().nast.rezim) || REZIMY[2];
+  const poradi = r.menu.concat(MENU.map(m => m[0]).filter(id => !r.menu.includes(id) && id !== 'vzhled')).concat(['vzhled']);
+  return poradi.map(id => MENU.find(m => m[0] === id)).filter(Boolean).map(([id, n, ik]) => '<a href="#' + id + '" class="' + (U.view === id || (U.view === 'ukoly' && id === 'cile') ? 'on' : '') + '"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + ik + '</g></svg><span>' + n + '</span></a>').join('');
+}
+let prvniStart = true;
+const startView = () => (REZIMY.find(x => x.id === S().nast.rezim) || REZIMY[2]).start;
 const UIKEY = 'fd-ui-1';
 let U = { view: 'den', day: dnes(), voz: '', tagSel: '', q: '' };
 try { Object.assign(U, JSON.parse(localStorage.getItem(UIKEY)) || {}); } catch (err) { /* bez úložiště */ }
@@ -22,20 +47,23 @@ const saveUI = () => { try { localStorage.setItem(UIKEY, JSON.stringify(U)); } c
 const Q = { typ: 'v', text: '', pen: 'ucet', katTouched: false, auto: {} };
 let api = null, user = null, cekaRender = false, lastKey = '', ro = null;
 const S = () => st.S;
-const isDark = () => !!(SKINS.find(s => s.id === S().nast.skin) || {}).dark;
+const isDark = () => !!(PAPIR.find(p => p.id === S().nast.papir) || {}).dark;
 
 // ---------- vykreslení ----------
 function render() {
   if (!S()) return;
   const n = S().nast, b = document.body;
-  b.dataset.skin = n.skin; b.dataset.paper = n.paper;
+  b.dataset.desky = n.desky; b.dataset.stul = n.stul; b.dataset.papir = n.papir; b.dataset.linky = n.linky; b.dataset.rezim = n.rezim;
+  const d = DESKY.find(x => x.id === n.desky) || DESKY[0], p = PAPIR.find(x => x.id === n.papir) || PAPIR[0];
   const f = FONTS.find(x => x.id === n.font) || FONTS[0], ink = INKS.find(x => x.id === n.ink) || INKS[0];
+  b.style.setProperty('--cover', d.c); b.style.setProperty('--cover2', d.c2); b.style.setProperty('--paper', p.c);
   b.style.setProperty('--hand', f.f); b.style.setProperty('--hs', f.s + 'px'); b.style.setProperty('--ink', ink.c[isDark() ? 1 : 0]);
-  document.querySelectorAll('.nav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + U.view));
+  $('#menu').innerHTML = menuHTML();
   $('#stav').innerHTML = stavHTML();
-  if (!$('#panel').hidden) $('#panelIn').innerHTML = panelHTML();
   const [L, R] = (VIEWS[U.view] || vDen)(S(), U, Q, hlasDostupny());
   $('#pL').innerHTML = L; $('#pR').innerHTML = R;
+  const ix = Math.max(0, MENU.findIndex(m => m[0] === (U.view === 'ukoly' ? 'cile' : U.view)));
+  $('#pL').dataset.s = ix * 2 + 1; $('#pR').dataset.s = ix * 2 + 2;
   const key = U.view + U.day;
   if (lastKey && key !== lastKey) { const bk = $('#book'); bk.classList.remove('turn'); void bk.offsetWidth; bk.classList.add('turn'); }
   lastKey = key;
@@ -49,6 +77,16 @@ function render() {
 }
 function kresli() {
   const m = $('#mch'); if (m) grafMesic(m, S(), mk(U.day));
+  const ym = mk(U.day), n = U.view === 'grafy' ? grafyObdobi(U) : 1;
+  const gsl = $('#gsl'); if (gsl) grafSloupce(gsl, mesice(S(), ym, U.view === 'grafy' ? Math.max(6, n) : 6));
+  const gk = $('#gkol');
+  if (gk) {
+    const ks = katObdobi(S(), posunYm(ym, -(n - 1)), ym), tot = ks.reduce((x, k) => x + k[1], 0), sel = ks.find(k => k[0] === U.ksel);
+    const data = ks.slice(0, 7).map(([k, v]) => ({ id: k, n: (S().kats[k] || { n: '?' }).n, c: (S().kats[k] || { c: '#999' }).c, v }));
+    if (ks.length > 7) data.push({ id: 'ostatni', n: 'Ostatní', c: '#a8a8a8', v: ks.slice(7).reduce((x, k) => x + k[1], 0) });
+    grafKolac(gk, data, U.ksel, sel ? [kc(sel[1]), (S().kats[sel[0]] || {}).n || '', Math.round(sel[1] / tot * 100) + ' %'] : [kc(tot), 'celkem']);
+  }
+  const gb = $('#gbud'); if (gb) { const pr = S().pred[ym], s = souhrnMesice(S(), ym), N = new Date(+ym.slice(0, 4), +ym.slice(5), 0).getDate(), now = dnes(); grafBudik(gb, s.exp, pr ? pr.vydaje : 0, mk(now) === ym ? pd(now).getDate() / N : ym < mk(now) ? 1 : 0); }
   const gv = $('#gv'), gh = $('#gh');
   if (gv) grafRada(gv, rustData(S(), U).filter(z => z.vyska).map(z => ({ d: z.d, v: z.vyska })), 'cm', 0);
   if (gh) grafRada(gh, rustData(S(), U).filter(z => z.vaha).map(z => ({ d: z.d, v: z.vaha })), 'kg', 1);
@@ -70,16 +108,13 @@ function stavHTML() {
   return d == null ? '' : d > 0 ? 'Zkušební měsíc · ' + d + ' ' + (d === 1 ? 'den' : d < 5 ? 'dny' : 'dní') : 'Zkušební měsíc skončil';
 }
 
-function panelHTML() {
-  const n = S().nast, dark = isDark() ? 1 : 0, d = trialDni();
+function ucetHTML() {
+  const d = trialDni();
   const ucet = st.mode === 'cloud'
     ? '<p class="note2" style="margin-top:0">Přihlášen: <b>' + esc(user && (user.email || user.displayName) || '') + '</b><br>' + (d > 0 ? 'Zkušební měsíc zdarma: zbývá ' + d + ' dní.' : 'Zkušební měsíc skončil. Placení přijde v další verzi, zatím můžeš psát dál.') + '</p><button class="btn ghost" data-act="logout">Odhlásit se</button>'
     : '<p class="note2" style="margin-top:0">Režim bez účtu: zápisy jsou jen v tomto prohlížeči.</p>' + (FIREBASE.apiKey ? '<button class="btn" data-act="showlogin">Přihlásit se</button> ' : '') +
       '<button class="btn ghost" data-act="reset" data-id="demo">Obnovit ukázku</button> <button class="btn ghost" data-act="reset" data-id="">Prázdný deník</button>';
-  return '<div><h4>Vzhled knihy</h4><div class="opts">' + SKINS.map(s => '<button class="sw ' + (n.skin === s.id ? 'on' : '') + '" data-act="skin" data-id="' + s.id + '" style="--c:' + s.c + ';--p:' + s.p + '" aria-label="' + s.n + '"><i></i></button>').join('') + '</div><p class="skinname">' + ((SKINS.find(s => s.id === n.skin) || {}).n || '') + '</p></div>' +
-    '<div><h4>Písmo zápisků</h4><div class="opts">' + FONTS.map(f => '<button class="fo ' + (n.font === f.id ? 'on' : '') + '" data-act="font" data-id="' + f.id + '" style="font-family:' + f.f + ';font-size:' + Math.min(f.s, 20) + 'px">' + f.n + '</button>').join('') + '</div></div>' +
-    '<div><h4>Inkoust</h4><div class="opts">' + INKS.map(i => '<button class="ink ' + (n.ink === i.id ? 'on' : '') + '" data-act="ink" data-id="' + i.id + '" style="--c:' + i.c[dark] + '" aria-label="' + i.n + '"></button>').join('') + '</div><h4 style="margin-top:10px">Papír</h4><div class="opts">' + PAPERS.map(p => '<button class="pa ' + (n.paper === p.id ? 'on' : '') + '" data-act="paper" data-id="' + p.id + '">' + p.n + '</button>').join('') + '</div></div>' +
-    '<div><h4>Účet</h4>' + ucet + '<p class="note2">Finanční deník ' + VERZE + '</p></div>';
+  return ucet;
 }
 
 // ---------- stránka dne ----------
@@ -256,14 +291,10 @@ document.addEventListener('click', ev => {
     case 'padd': { const n = $('#pn').value.trim(); if (!n) { $('#pn').focus(); return; } const p = { id: uid(), n, start: 0 }; zapis(['pen', p.id], p); break; }
     case 'pdel': zapis(['pen', id], null); break;
     case 'tag': U.tagSel = U.tagSel === id ? '' : id; break;
-    case 'skin': { const s = SKINS.find(x => x.id === id); zapis(['nast', 'skin'], id); if (s) zapis(['nast', 'paper'], s.paper); break; }
-    case 'font': zapis(['nast', 'font'], id); break;
-    case 'ink': zapis(['nast', 'ink'], id); break;
-    case 'paper': zapis(['nast', 'paper'], id); break;
     case 'reset': resetLocal(id === 'demo'); break;
     case 'logout': if (api) api.odhlasit(); return;
     case 'showlogin': ukazLogin(); return;
-    default: { const r = zivotAkce(a, t, U, { render, toast }); if (!r || r === 'stop') return; }
+    default: { let r = zivotAkce(a, t, U, { render, toast }); if (!r) r = kronikaAkce(a, t, U, { render, toast }); if (!r || r === 'stop') return; }
   }
   saveUI(); render();
 });
@@ -272,11 +303,9 @@ document.addEventListener('change', ev => {
   if (a === 'kcol') { zapis(['kats', t.dataset.id, 'c'], t.value); render(); }
   if (a === 'pstart') { const v = num(t.value); zapis(['pen', t.dataset.id, 'start'], isNaN(v) ? 0 : v); render(); }
 });
-$('#vzBtn').addEventListener('click', () => {
-  const p = $('#panel'); p.hidden = !p.hidden;
-  $('#vzBtn').setAttribute('aria-expanded', String(!p.hidden));
-  if (!p.hidden) $('#panelIn').innerHTML = panelHTML();
-});
+// Menu na telefonu: tlačítko v deskách rozbalí seznam stránek
+$('#menuBtn').addEventListener('click', () => { const o = document.body.classList.toggle('menu-open'); $('#menuBtn').setAttribute('aria-expanded', String(o)); });
+document.addEventListener('click', ev => { if (ev.target.closest('#menu a')) { document.body.classList.remove('menu-open'); $('#menuBtn').setAttribute('aria-expanded', 'false'); } });
 function route() {
   const h = location.hash.slice(1);
   if (h === 'zapis' || h === 'zapis-mic') {
@@ -285,8 +314,11 @@ function route() {
     try { history.replaceState(null, '', '#den'); } catch (err) { /* náhled v rámečku */ }
     saveUI(); render(); otevritBlocek({ mic: h === 'zapis-mic' }); return;
   }
-  if (VIEWS[h]) U.view = h;
+  if (VIEWS[h]) U.view = h === 'ukoly' ? 'cile' : h;
+  else if (!h && prvniStart) U.view = startView();
+  prvniStart = false;
   saveUI(); render();
+  window.scrollTo(0, 0);
 }
 const NATIVNI = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 // Android appka: widget a zkratky otevírají financnidenik://zapis (?mic=1)

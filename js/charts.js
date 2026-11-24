@@ -1,4 +1,4 @@
-// Finanční deník · charts.js · v0.3.0
+// Finanční deník · charts.js · v0.4.0
 // Grafy „kreslené perem“: každá čára se kreslí dvakrát s drobným chvěním (vlastní obdoba rough.js).
 
 import { pd, mk, dim, dnes, kc, nf } from './util.js';
@@ -81,3 +81,70 @@ export function grafRada(svg, body, jednotka, des) {
   });
   svg.innerHTML = s;
 }
+
+// ---------- v0.4: akvarelové grafy (sloupce, koláč, budík plánu) ----------
+export const MES_KR = ['Led', 'Úno', 'Bře', 'Dub', 'Kvě', 'Čvn', 'Čvc', 'Srp', 'Zář', 'Říj', 'Lis', 'Pro'];
+// Akvarel: tvar se zvlní šumem (feTurbulence) a dostane tmavší okraj jako zaschlá barva
+const akvDefs = id => '<defs><filter id="' + id + '" x="-8%" y="-8%" width="116%" height="116%"><feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2" seed="5" result="n"/>' +
+  '<feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G"/></filter></defs>';
+const akv = (d, c, fid, extra) => '<path d="' + d + '" fill="' + c + '" fill-opacity=".62" filter="url(#' + fid + ')"' + (extra || '') + '/>' +
+  '<path d="' + d + '" fill="none" stroke="' + c + '" stroke-opacity=".85" stroke-width="1.6" filter="url(#' + fid + ')"' + (extra || '') + '/>';
+const tis = v => v >= 1000 ? (v / 1000).toLocaleString('cs-CZ', { maximumFractionDigits: 1 }) + 'k' : String(Math.round(v));
+
+export function grafSloupce(svg, data, barvy) {
+  const { ui } = barvyStranky(), W = svg.clientWidth, H = svg.clientHeight, fid = svg.id + '-akv';
+  const cInc = (barvy && barvy.inc) || '#4c9a5a', cExp = (barvy && barvy.exp) || '#ef8a3c';
+  const mx = Math.max(1, ...data.map(d => Math.max(d.inc, d.exp))) * 1.15, l = 42, r = 12, t = 30, bt = 26, step = nice(mx / 1.1);
+  const Y = v => H - bt - v / mx * (H - t - bt), sl = (W - l - r) / data.length, bw = Math.min(26, sl * 0.3);
+  let s = akvDefs(fid) + pen(seg(l, H - bt, W - r, H - bt, 10), 51, ui, 1.3);
+  for (let v = step; v < mx; v += step) s += '<line x1="' + l + '" x2="' + (W - r) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="' + ui + '" stroke-opacity=".12" stroke-dasharray="3 5"/><text x="' + (l - 6) + '" y="' + (Y(v) + 4) + '" text-anchor="end">' + tis(v) + '</text>';
+  data.forEach((d, i) => {
+    const cx = l + sl * i + sl / 2, m = +d.ym.slice(5, 7) - 1;
+    [[d.inc, cInc, -1], [d.exp, cExp, 1]].forEach(([v, c, k]) => {
+      if (v <= 0) return;
+      const x0 = cx + (k < 0 ? -bw - 2 : 2), y0 = Y(v), y1 = H - bt;
+      s += akv('M' + x0 + ' ' + y1 + 'L' + x0 + ' ' + (y0 + 2) + 'Q' + (x0 + bw / 2) + ' ' + (y0 - 2) + ' ' + (x0 + bw) + ' ' + (y0 + 1) + 'L' + (x0 + bw) + ' ' + y1 + 'Z', c, fid);
+    });
+    s += '<text x="' + cx + '" y="' + (H - 7) + '" text-anchor="middle">' + MES_KR.at(m) + '</text>';
+  });
+  const last = data[data.length - 1], z = last.inc - last.exp;
+  if (last.inc > 0 && W > 360) {
+    const cx = l + sl * (data.length - 0.5), y = Y(Math.max(last.inc, last.exp)) - 10;
+    s += '<text x="' + (cx - 4) + '" y="' + Math.max(14, y) + '" text-anchor="end" class="anot">' + (z >= 0 ? '+' : '−') + kc(Math.abs(z)) + '</text>';
+  }
+  svg.innerHTML = s;
+}
+
+const oblouk = (cx, cy, r0, r1, a0, a1) => {
+  const p = (r, a) => (cx + r * Math.cos(a)).toFixed(1) + ' ' + (cy + r * Math.sin(a)).toFixed(1), big = a1 - a0 > Math.PI ? 1 : 0;
+  return 'M' + p(r1, a0) + 'A' + r1 + ' ' + r1 + ' 0 ' + big + ' 1 ' + p(r1, a1) + 'L' + p(r0, a1) + 'A' + r0 + ' ' + r0 + ' 0 ' + big + ' 0 ' + p(r0, a0) + 'Z';
+};
+// Koláč (mezikruží) kategorií; klepnutá výseč se „zvedne“ jako vystřihovánka
+export function grafKolac(svg, kats, sel, stred) {
+  const W = svg.clientWidth, H = svg.clientHeight, fid = svg.id + '-akv', cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 12, r0 = R * 0.58;
+  const tot = kats.reduce((a, k) => a + k.v, 0);
+  if (!tot) { svg.innerHTML = '<text x="' + cx + '" y="' + cy + '" text-anchor="middle">Zatím žádné výdaje</text>'; return; }
+  let a = -Math.PI / 2, s = akvDefs(fid);
+  kats.forEach(k => {
+    const da = k.v / tot * Math.PI * 2, mid = a + da / 2, on = sel === k.id, off = on ? 9 : 0;
+    s += '<g data-act="kslice" data-id="' + k.id + '" class="vysec' + (on ? ' on' : '') + '" transform="translate(' + (Math.cos(mid) * off).toFixed(1) + ' ' + (Math.sin(mid) * off).toFixed(1) + ')" role="button" aria-label="' + k.n + ' ' + kc(k.v) + '">' +
+      akv(oblouk(cx, cy, r0, R, a + 0.012, a + da - 0.012), k.c, fid) + '</g>';
+    a += da;
+  });
+  s += '<text x="' + cx + '" y="' + (cy - 4) + '" text-anchor="middle" class="stred1">' + stred[0] + '</text><text x="' + cx + '" y="' + (cy + 18) + '" text-anchor="middle" class="stred2">' + stred[1] + '</text>';
+  if (stred[2]) s += '<text x="' + cx + '" y="' + (cy + 36) + '" text-anchor="middle" class="stred2">' + stred[2] + '</text>';
+  svg.innerHTML = s;
+}
+// Budík plánu: kolik z plánovaných výdajů je utraceno; ryska ukazuje, kolik měsíce uplynulo
+export function grafBudik(svg, utraceno, plan, cast) {
+  const { ui } = barvyStranky(), W = svg.clientWidth, H = svg.clientHeight, fid = svg.id + '-akv', cx = W / 2, cy = H - 18, R = Math.min(W / 2 - 14, H - 30), r0 = R * 0.74;
+  const p = plan > 0 ? utraceno / plan : 0, A = q => Math.PI + Math.PI * Math.min(1, Math.max(0, q));
+  const rychle = p > cast * 1.05, c = rychle ? '#ef8a3c' : '#4c9a5a';
+  let s = akvDefs(fid) + '<path d="' + oblouk(cx, cy, r0, R, Math.PI, 2 * Math.PI) + '" fill="' + ui + '" fill-opacity=".08"/>';
+  if (p > 0) s += akv(oblouk(cx, cy, r0, R, Math.PI, A(p)), c, fid);
+  const ar = A(cast);
+  s += '<line x1="' + (cx + (r0 - 6) * Math.cos(ar)) + '" y1="' + (cy + (r0 - 6) * Math.sin(ar)) + '" x2="' + (cx + (R + 6) * Math.cos(ar)) + '" y2="' + (cy + (R + 6) * Math.sin(ar)) + '" stroke="' + ui + '" stroke-width="2" stroke-dasharray="3 3"/>';
+  s += '<text x="' + cx + '" y="' + (cy - 14) + '" text-anchor="middle" class="stred1">' + Math.round(p * 100) + ' %</text><text x="' + cx + '" y="' + (cy + 4) + '" text-anchor="middle" class="stred2">plánu utraceno</text>';
+  svg.innerHTML = s;
+}
+function barvyStranky() { const cs = getComputedStyle(document.body); return { ui: cs.getPropertyValue('--ui').trim() || '#333', ink: cs.getPropertyValue('--ink').trim() }; }

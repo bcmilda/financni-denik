@@ -9,24 +9,30 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Courier+Prime:wght@400;700&family=EB+Garamond:wght@400;600&family=Inter:wght@400;600&family=Patrick+Hand&family=Shantell+Sans:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/fonty.css">
 <link rel="stylesheet" href="css/app.css">
 </head>
-<body data-skin="kniha" data-paper="linky">
+<body data-desky="hneda" data-stul="dub" data-papir="kremova" data-linky="linky">
 <div id="login" hidden></div>
 <div id="app" hidden>
-  <header class="bar">
-    <h1 class="brand">Finanční deník</h1>
-    <nav class="nav" aria-label="Stránky deníku">
-      <a href="#den">Den</a><a href="#mesic">Měsíc</a><a href="#tankovani">Tankování</a><a href="#ukoly">Úkolníček</a><a href="#zivot">Kniha života</a><a href="#kategorie">Kategorie</a><a href="#hledat">Hledat</a>
-    </nav>
-    <span class="stav" id="stav"></span>
-    <button class="vz" id="vzBtn" aria-expanded="false" aria-controls="panel">Vzhled a účet</button>
-  </header>
-  <div class="panel" id="panel" hidden><div id="panelIn"></div></div>
-  <main class="book" id="book"><section class="page L" id="pL"></section><section class="page R" id="pR"></section></main>
+  <div class="stul">
+    <aside class="desky" aria-label="Desky deníku">
+      <div class="logo">
+        <svg viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#f3e3bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M32 58V34M32 44l-8-7M32 40l9-8M26 58h12"/><circle cx="32" cy="22" r="10"/><circle cx="20" cy="27" r="8"/><circle cx="44" cy="27" r="8"/><circle cx="25" cy="14" r="6"/><circle cx="40" cy="13" r="6"/></g></svg>
+        <b>Finanční deník</b><span>kniha tvého finančního života</span>
+      </div>
+      <button class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="menu"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Menu</button>
+      <nav class="menu" id="menu" aria-label="Stránky deníku"></nav>
+      <p class="motto">Malé kroky,<br>velké výsledky.</p>
+      <span class="stav" id="stav"></span>
+    </aside>
+    <main class="book" id="book">
+      <section class="page L" id="pL"></section><section class="page R" id="pR"></section>
+      <div class="rejstrik" aria-label="Rejstřík">
+        <a href="#prehled" style="background:#f2a6a0">Přehled</a><a href="#den" style="background:#f5d56b">Den</a><a href="#mesic" style="background:#a9d39a">Měsíc</a><a href="#cile" style="background:#9cc3e6">Cíle</a><a href="#zivot" style="background:#c9b3e6">Život</a>
+      </div>
+    </main>
+  </div>
 </div>
 <div id="blocek" class="blocek" role="dialog" aria-modal="true" aria-labelledby="bt" hidden></div>
 <p id="toast" class="toast" role="status" hidden></p>
