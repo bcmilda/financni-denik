@@ -1,4 +1,4 @@
-// Finanční deník · views.js · v0.1.0
+// Finanční deník · views.js · v0.2.0
 // Každá stránka vrací [levá strana, pravá strana] jako HTML. Žádné zápisy dat – ty dělá app.js.
 
 import { esc, kc, kc2, nf, pd, iso, mk, dim, dnes, DNY, MG, MN, ymLabel, datKratce, vals } from './util.js';

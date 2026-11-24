@@ -1,4 +1,4 @@
-/* Finanční deník · app.css · v0.1.0 */
+/* Finanční deník · app.css · v0.2.0 */
 /* VOICE everyday, warm: a personal notebook about money, not a dashboard
    IDEA a real paper diary lying open on a desk – covers, paper, ink, highlighter, taped receipts
    PICTURE the open book itself: two pages on a laptop, stacked pages on a phone
@@ -182,3 +182,22 @@ body[data-skin=minimal] .cover{color:#141414;border:1px solid #ddd}
 .lrow{display:flex;flex-wrap:wrap;gap:8px}
 .linkbtn{background:none;border:0;color:inherit;text-decoration:underline;font:inherit;font-size:14px;padding:10px 0;cursor:pointer;min-height:44px;margin-right:14px}
 .lmsg{min-height:22px;font-size:14px;margin:10px 0 0}
+
+/* ---- v0.2: trhací bloček, čipy, oznámení ---- */
+.blocek{position:fixed;inset:0;z-index:50;background:rgba(10,6,2,.55);display:grid;place-items:end center;padding:16px;overflow-y:auto}
+@media (min-width:600px){.blocek{place-items:center}}
+body.blocek-open{overflow:hidden}
+.slip{position:relative;width:min(440px,100%);background:#fffbe9;color:#2a2117;padding:30px 22px 22px;border-radius:2px 2px 6px 6px;box-shadow:0 24px 50px -20px rgba(0,0,0,.7);background-image:repeating-linear-gradient(to bottom,transparent 0 31px,rgba(80,120,180,.22) 31px 32px);background-position:0 18px;--ink:#1f3f9a;--ui:#2a2117;--muted:#6f6352;--line:rgba(80,60,30,.25);--paper:#fffbe9;--acc:#8c2f2f;animation:slipIn .28s ease-out}
+.slip::before{content:'';position:absolute;left:0;right:0;top:-7px;height:14px;background:radial-gradient(circle at 7px 7px,transparent 4.5px,#fffbe9 5px) 0 0/14px 14px repeat-x}
+@keyframes slipIn{from{transform:translateY(40px) rotate(-2deg);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.slip{animation:none}}
+.slip h2{font:600 26px/1.1 'Caveat',cursive;margin:0}
+.bsub{margin:2px 0 12px;font-size:13px;color:var(--muted)}
+.bx{position:absolute;right:8px;top:8px;width:44px;height:44px;border:0;background:transparent;font-size:26px;color:var(--muted);cursor:pointer;border-radius:50%}
+.slip .line{font-family:'Caveat',cursive;font-size:26px;color:var(--ink)}
+.slip .seg button.on{background:#2a2117;color:#fffbe9}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.chip{border:1.5px solid var(--c);background:transparent;color:#2a2117;border-radius:999px;padding:6px 12px;font:14px 'Inter',sans-serif;min-height:38px;cursor:pointer}
+.chip.on{background:color-mix(in srgb,var(--c) 22%,#fffbe9);font-weight:600}
+.slip .btn.wide{width:100%;margin-top:4px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:60;background:#1d1d1f;color:#fff;padding:12px 18px;border-radius:12px;font-size:15px;box-shadow:0 10px 30px -10px rgba(0,0,0,.6);max-width:calc(100% - 32px)}

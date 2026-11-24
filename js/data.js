@@ -1,4 +1,4 @@
-// Finanční deník · data.js · v0.1.0
+// Finanční deník · data.js · v0.2.0
 // Vzhledy, písma, výchozí kategorie, prázdný deník a ukázkový měsíc.
 
 import { iso, addD, mk, p2, uid } from './util.js';
