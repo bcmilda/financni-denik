@@ -1,4 +1,4 @@
-// Finanční deník · views.js · v0.5.0
+// Finanční deník · views.js · v0.6.0
 // Každá stránka vrací [levá strana, pravá strana] jako HTML. Žádné zápisy dat – ty dělá app.js.
 
 import { esc, kc, kc2, nf, pd, iso, mk, dim, dnes, DNY, MG, MN, ymLabel, datKratce, vals } from './util.js';
@@ -33,17 +33,29 @@ export function entHTML(S, e, sDatem) {
     (e.typ === 'v' ? '<span class="pocit" role="group" aria-label="Jak se z výdaje cítíš">' + POCITY.map(([k, n, ik]) => '<button class="pc' + (e.pocit === k ? ' on' : '') + '" data-act="pocit" data-id="' + e.id + '" data-v="' + k + '" title="' + n + '" aria-label="' + n + '" aria-pressed="' + (e.pocit === k) + '"><svg viewBox="0 0 20 20" aria-hidden="true">' + ik + '</svg></button>').join('') + '</span>' : '') + '</span></li>';
 }
 
-function rcHTML(S, s) {
+function rcHTML(S, s, U) {
   const ent = vals(S.e).find(e => e.rc === s.id);
   if (s.img) {
-    return '<figure class="rcpt foto"><img src="' + s.img + '" alt="Vlepená účtenka">' + (ent
-      ? '<figcaption class="dt">' + esc(ent.text) + ' · ' + kc(ent.kc) + '</figcaption>'
-      : '<div class="f2"><span>Čtení účtenky přes AI přijde v další verzi. Zatím doplň:</span><input class="inp" id="rcO" placeholder="Obchod" value="' + esc(s.obchod) + '"><input class="inp" id="rcK" inputmode="decimal" placeholder="Částka v Kč"><button class="btn" data-act="rcok" data-id="' + s.id + '">Zapsat výdaj</button><button class="btn ghost" data-act="rcdel" data-id="' + s.id + '">Odlepit</button></div>') + '</figure>';
+    if (ent) return '<figure class="rcpt foto"><img src="' + s.img + '" alt="Vlepená účtenka"><figcaption class="dt">' + esc(ent.text) + ' · ' + kc(ent.kc) + '</figcaption>' + polHTML(s) + '</figure>';
+    const ai = s.ai || {}, cte = U && U.rcCte === s.id, k = ai.kat && S.kats[ai.kat] ? ai.kat : 'jidlo';
+    const datInfo = ai.datum && ai.datum !== s.d && /^\d{4}-\d{2}-\d{2}$/.test(ai.datum) ? '<span class="rc-dat">Na účtence je datum ' + datKratce(ai.datum) + ' <button class="linkbtn" data-act="rcden" data-id="' + s.id + '">Přesunout na ten den</button></span>' : '';
+    return '<figure class="rcpt foto' + (cte ? ' cte' : '') + '"><img src="' + s.img + '" alt="Vlepená účtenka">' +
+      (cte ? '<div class="f2"><span class="rc-cte">Čtu účtenku…</span></div>' :
+      '<div class="f2">' + (s.ai ? '<span>Přečteno' + (ai.jistota === 'nizka' ? ' – špatně čitelné, zkontroluj' : '') + ':</span>' : '<span>Doplň obchod a částku, nebo ji nech přečíst.</span>') + datInfo +
+      '<input class="inp" id="rcO-' + s.id + '" placeholder="Obchod" aria-label="Obchod" value="' + esc(s.obchod || '') + '">' +
+      '<input class="inp" id="rcK-' + s.id + '" inputmode="decimal" placeholder="Částka v Kč" aria-label="Částka v Kč" value="' + (ai.celkem ? String(ai.celkem).replace('.', ',') : '') + '">' +
+      '<select class="inp" id="rcC-' + s.id + '" aria-label="Kategorie">' + katsSorted(S, 'v').map(x => '<option value="' + x.id + '"' + (x.id === k ? ' selected' : '') + '>' + esc(x.n) + '</option>').join('') + '</select>' +
+      '<button class="btn" data-act="rcok" data-id="' + s.id + '">Zapsat výdaj</button>' +
+      '<button class="btn ghost" data-act="rcai" data-id="' + s.id + '">' + (s.ai ? 'Přečíst znovu' : 'Přečíst účtenku (AI)') + '</button>' +
+      '<button class="btn ghost" data-act="rcdel" data-id="' + s.id + '">Odlepit</button></div>' + polHTML(s)) + '</figure>';
   }
   const pol = s.pol || [], tot = pol.reduce((a, p) => a + p[1], 0), d = pd(s.d);
   return '<div class="rcpt"><h5>' + esc(s.obchod) + '</h5>' + pol.map(p => '<div class="it"><span>' + esc(p[0]) + '</span><span>' + nf(p[1], 2) + '</span></div>').join('') +
     '<div class="it tot"><span>Celkem</span><span>' + kc2(tot) + '</span></div><div class="dt">' + d.getDate() + '. ' + (d.getMonth() + 1) + '. ' + d.getFullYear() + '</div></div>';
 }
+
+// Položky přečtené z fotky účtenky (rozbalovací)
+const polHTML = s => (s.pol && s.pol.length ? '<details class="rc-pol"><summary>Položky (' + s.pol.length + ')</summary>' + s.pol.map(p => '<div class="it"><span>' + esc(p[0]) + '</span><span>' + nf(p[1], 2) + '</span></div>').join('') + '</details>' : '');
 
 export function taskHTML(S, U, u) {
   const ym = mk(U.day), carry = u.mesic < ym && !u.hotovo;
@@ -75,7 +87,7 @@ export function vDen(S, U, Q, mic) {
     '<div class="row" id="qtank" hidden>' + (vz.length ? '<label class="f">Vozidlo<select id="qvoz">' + vz.map(v => '<option value="' + v.id + '"' + (v.id === U.voz ? ' selected' : '') + '>' + esc(v.n) + (v.typ === 'moto' ? ' (moto)' : ' (auto)') + '</option>').join('') + '</select></label>' : '<p class="note2" style="grid-column:1/-1">Nejdřív si na stránce <a href="#tankovani">Tankování</a> přidej auto nebo motorku.</p>') +
     '<label class="f">Litry<input id="ql" inputmode="decimal"></label><label class="f">Tachometr, km<input id="qkm" inputmode="numeric"></label></div>' +
     '<button class="btn" data-act="add">Zapsat do deníku</button>' +
-    '<h3 class="sub">Vlepené účtenky</h3>' + (stk.length ? '<div class="stk">' + stk.map(s => rcHTML(S, s)).join('') + '</div>' : '<p class="empty">Žádná účtenka. Vyfoť ji a vlep sem.</p>') +
+    '<h3 class="sub">Vlepené účtenky</h3>' + (stk.length ? '<div class="stk">' + stk.map(s => rcHTML(S, s, U)).join('') + '</div>' : '<p class="empty">Žádná účtenka. Vyfoť ji a vlep sem.</p>') +
     '<label class="btn ghost" for="rcf">Vlepit účtenku z fotky</label><input type="file" id="rcf" accept="image/*" hidden>' +
     '<h3 class="sub">Do konce měsíce</h3><dl class="kv"><dt>Zbývá z ' + (pr ? 'plánovaného příjmu' : 'příjmů') + '</dt><dd>' + kc(left) + '</dd><dt>Na každý den (' + daysLeft + ' ' + (daysLeft === 1 ? 'den' : daysLeft < 5 ? 'dny' : 'dní') + ')</dt><dd>' + kc(Math.max(0, left) / Math.max(1, daysLeft)) + '</dd></dl>' +
     (tasks.length ? '<h3 class="sub">Úkoly na dnes</h3>' + tasks.map(u => taskHTML(S, U, u)).join('') : '');

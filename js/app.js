@@ -1,4 +1,4 @@
-// Finanční deník · app.js · v0.5.0
+// Finanční deník · app.js · v0.6.0
 // Start, přihlášení, vykreslení stránek a všechny akce uživatele.
 
 import { VERZE, iso, pd, addD, mk, dnes, esc, kc, nf, num, uid, vals } from './util.js';
@@ -9,6 +9,11 @@ import { vDen, vMesic, vTank, vUkoly, vKat, vHledat } from './views.js';
 import { grafMesic, grafTank, grafRada, grafSloupce, grafKolac, grafBudik } from './charts.js';
 import { vPrehled, vPokladni, vGrafy, vCile, vOceneni, vVzhled, vRok, kronikaAkce, grafyObdobi } from './kronika.js';
 import { vTracker, trackerAkce } from './tracker.js';
+import { vTyden, tydenAkce, ulozText } from './tyden.js';
+import { vlozNalepky, nalepkyAkce, initNalepky } from './nalepky.js';
+import { ukazZavrenou, listuj, initListovani, sipkaStranky } from './kniha.js';
+import { vKronika, tiskAkce } from './tisk.js';
+import { vlepitFotku, precti } from './uctenky.js';
 import { mesice, souhrnMesice, katObdobi, posunYm } from './logic.js';
 import { FIREBASE } from './config.js';
 import { diktuj, hlasDostupny, hlasChyba } from './hlas.js';
@@ -16,12 +21,13 @@ import { initBlocek, otevritBlocek, toast } from './blocek.js';
 import { vZivot, zivotAkce, bindZivot, rustData } from './zivot.js';
 
 const $ = s => document.querySelector(s);
-const VIEWS = { prehled: vPrehled, den: vDen, pokladni: vPokladni, mesic: vMesic, grafy: vGrafy, cile: vCile, tracker: vTracker, oceneni: vOceneni, rok: vRok, zivot: vZivot, tankovani: vTank, kategorie: vKat, hledat: vHledat,
+const VIEWS = { prehled: vPrehled, den: vDen, pokladni: vPokladni, mesic: vMesic, grafy: vGrafy, cile: vCile, tracker: vTracker, tyden: vTyden, oceneni: vOceneni, rok: vRok, kronika: vKronika, zivot: vZivot, tankovani: vTank, kategorie: vKat, hledat: vHledat,
   vzhled: (S, U) => vVzhled(S, U, { ucet: ucetHTML() }), ukoly: vCile };
 // Menu v kožených deskách: [stránka, název, ikonka]
 const MENU = [
   ['prehled', 'Přehled', '<path d="M3 11l9-7 9 7v9h-6v-6H9v6H3z"/>'],
   ['den', 'Den a zápis', '<path d="M4 20l4-1L19 8l-3-3L5 16zM14 7l3 3"/>'],
+  ['tyden', 'Týdenní list', '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M8 13h2M12 13h2M16 13h0M8 16.5h2M12 16.5h2"/>'],
   ['pokladni', 'Pokladní kniha', '<path d="M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2zM5 18a2 2 0 0 1 2-2h12M9 8h6M9 11h6"/>'],
   ['mesic', 'Měsíc a plán', '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>'],
   ['grafy', 'Grafy a statistiky', '<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>'],
@@ -32,12 +38,16 @@ const MENU = [
   ['zivot', 'Kniha života', '<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>'],
   ['tankovani', 'Tankování', '<path d="M5 20V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v15M4 20h11M7 8h5M14 9h2a2 2 0 0 1 2 2v5a1.5 1.5 0 0 0 3 0V8l-3-3"/>'],
   ['kategorie', 'Kategorie a peněženky', '<path d="M4 12V5a1 1 0 0 1 1-1h7l8 8-8 8z"/><circle cx="8.5" cy="8.5" r="1.3"/>'],
+  ['kronika', 'Kronika do PDF', '<path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 16.5h7M9 9.5h3"/>'],
   ['hledat', 'Hledat', '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>'],
   ['vzhled', 'Vzhled a nastavení', '<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>'],
 ];
-function menuHTML() {
+function poradiMenu() {
   const r = REZIMY.find(x => x.id === S().nast.rezim) || REZIMY[2];
-  const poradi = r.menu.concat(MENU.map(m => m[0]).filter(id => !r.menu.includes(id) && id !== 'vzhled')).concat(['vzhled']);
+  return r.menu.concat(MENU.map(m => m[0]).filter(id => !r.menu.includes(id) && id !== 'vzhled')).concat(['vzhled']).filter(id => MENU.some(m => m[0] === id));
+}
+function menuHTML() {
+  const poradi = poradiMenu();
   return poradi.map(id => MENU.find(m => m[0] === id)).filter(Boolean).map(([id, n, ik]) => '<a href="#' + id + '" class="' + (U.view === id || (U.view === 'ukoly' && id === 'cile') ? 'on' : '') + '"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + ik + '</g></svg><span>' + n + '</span></a>').join('');
 }
 let prvniStart = true;
@@ -45,10 +55,10 @@ const startView = () => (REZIMY.find(x => x.id === S().nast.rezim) || REZIMY[2])
 const UIKEY = 'fd-ui-1';
 let U = { view: 'den', day: dnes(), voz: '', tagSel: '', q: '' };
 try { Object.assign(U, JSON.parse(localStorage.getItem(UIKEY)) || {}); } catch (err) { /* bez úložiště */ }
-U.day = dnes();
+U.day = dnes(); delete U.smer; U.nalSel = '';
 const saveUI = () => { try { localStorage.setItem(UIKEY, JSON.stringify(U)); } catch (err) { /* bez úložiště */ } };
 const Q = { typ: 'v', text: '', pen: 'ucet', katTouched: false, auto: {} };
-let api = null, user = null, cekaRender = false, lastKey = '', ro = null;
+let api = null, user = null, cekaRender = false, ro = null;
 const S = () => st.S;
 const isDark = () => !!(PAPIR.find(p => p.id === S().nast.papir) || {}).dark;
 
@@ -63,13 +73,13 @@ function render() {
   b.style.setProperty('--hand', f.f); b.style.setProperty('--hs', f.s + 'px'); b.style.setProperty('--ink', ink.c[isDark() ? 1 : 0]);
   $('#menu').innerHTML = menuHTML();
   $('#stav').innerHTML = stavHTML();
+  const smer = U.smer || 0; delete U.smer;
+  const stare = smer ? { L: $('#pL').innerHTML, R: $('#pR').innerHTML } : null;
   const [L, R] = (VIEWS[U.view] || vDen)(S(), U, Q, hlasDostupny());
   $('#pL').innerHTML = L; $('#pR').innerHTML = R;
+  vlozNalepky(S(), U);
   const ix = Math.max(0, MENU.findIndex(m => m[0] === (U.view === 'ukoly' ? 'cile' : U.view)));
   $('#pL').dataset.s = ix * 2 + 1; $('#pR').dataset.s = ix * 2 + 2;
-  const key = U.view + U.day;
-  if (lastKey && key !== lastKey) { const bk = $('#book'); bk.classList.remove('turn'); void bk.offsetWidth; bk.classList.add('turn'); }
-  lastKey = key;
   if (U.view === 'den') bindDen();
   if (U.view === 'hledat') bindHledat();
   if (U.view === 'zivot') bindZivot(U, { render, toast, saveUI });
@@ -77,6 +87,7 @@ function render() {
   ro = new ResizeObserver(kresli);
   document.querySelectorAll('.fig svg').forEach(s => ro.observe(s));
   cekaRender = false;
+  if (stare) { listuj(smer, stare); zvuk('list'); }
 }
 function kresli() {
   const m = $('#mch'); if (m) grafMesic(m, S(), mk(U.day));
@@ -127,6 +138,13 @@ function zvuk(druh) {
   try {
     ac = ac || new (window.AudioContext || window.webkitAudioContext)();
     const t0 = ac.currentTime, g = ac.createGain(); g.connect(ac.destination);
+    if (druh === 'list' || druh === 'nalepka') {
+      // šustění listu / odlepení nálepky: krátký filtrovaný šum
+      const dl = druh === 'list' ? 0.32 : 0.12, b = ac.createBuffer(1, Math.round(ac.sampleRate * dl), ac.sampleRate), ch = b.getChannelData(0);
+      for (let i = 0; i < ch.length; i++) { const x = i / ch.length; ch[i] = (Math.random() * 2 - 1) * Math.sin(Math.PI * x) * (druh === 'list' ? 0.5 + 0.5 * Math.sin(x * 40) : 1); }
+      const n = ac.createBufferSource(), f = ac.createBiquadFilter(); n.buffer = b; f.type = 'bandpass'; f.frequency.value = druh === 'list' ? 2600 : 1400; f.Q.value = 0.7;
+      g.gain.value = druh === 'list' ? 0.22 : 0.3; n.connect(f); f.connect(g); n.start(t0); return;
+    }
     if (druh === 'mince') {
       [1760, 2350].forEach((f, i) => { const o = ac.createOscillator(), gg = ac.createGain(); o.type = 'sine'; o.frequency.value = f; gg.gain.setValueAtTime(0.0001, t0 + i * 0.07); gg.gain.exponentialRampToValueAtTime(0.18, t0 + i * 0.07 + 0.01); gg.gain.exponentialRampToValueAtTime(0.0001, t0 + i * 0.07 + 0.35); o.connect(gg); gg.connect(ac.destination); o.start(t0 + i * 0.07); o.stop(t0 + i * 0.07 + 0.4); });
     } else {
@@ -196,20 +214,7 @@ function bindDen() {
   note.addEventListener('blur', () => { clearTimeout(tm); ulozZapisek(); });
   $('#rcf').addEventListener('change', ev => {
     const fl = ev.target.files && ev.target.files[0]; if (!fl) return;
-    const rd = new FileReader();
-    rd.onload = () => {
-      const im = new Image();
-      im.onload = () => {
-        const k = Math.min(1, 480 / im.width), cv = document.createElement('canvas');
-        cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k);
-        cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
-        const id = uid();
-        zapis(['stk', id], { id, d: U.day, img: cv.toDataURL('image/jpeg', 0.6), obchod: '' });
-        render();
-      };
-      im.src = rd.result;
-    };
-    rd.readAsDataURL(fl);
+    vlepitFotku(fl, U.day, U, ctxAkce()).catch(() => toast('Fotku se nepodařilo načíst.'));
   });
 }
 function pridej() {
@@ -277,6 +282,12 @@ document.addEventListener('click', ev => {
   const t = ev.target.closest('[data-act]'); if (!t) return;
   const a = t.dataset.act, id = t.dataset.id, D = S();
   const mPosun = n => { const d = pd(U.day); d.setDate(1); d.setMonth(d.getMonth() + n); U.day = iso(d); };
+  // Směr listování (animace otočení listu)
+  const NAV = { dprev: -1, dnext: 1, mprev: -1, mnext: 1, wprev: -1, wnext: 1 };
+  if (NAV[a]) U.smer = NAV[a];
+  else if (a === 'tym') U.smer = +id < 0 ? -1 : 1;
+  else if (a === 'rok') U.smer = +id < +(U.rok || dnes().slice(0, 4)) ? -1 : 1;
+  else if (a === 'goday') U.smer = id < U.day ? -1 : 1;
   switch (a) {
     case 'dprev': U.day = addD(U.day, -1); break;
     case 'dnext': U.day = addD(U.day, 1); break;
@@ -288,15 +299,25 @@ document.addEventListener('click', ev => {
     case 'typ': Q.typ = t.dataset.v; Q.katTouched = false; break;
     case 'add': pridej(); return;
     case 'mic': mluv(t); return;
-    case 'del': { const e = D.e[id]; if (e && e.rc) zapis(['stk', e.rc], null); zapis(['e', id], null); break; }
+    case 'del': {
+      const e = D.e[id]; if (!e) break;
+      const s = e.rc ? D.stk[e.rc] : null;
+      if (s) zapis(['stk', e.rc], null);
+      zapis(['e', id], null);
+      toast('Smazáno: ' + e.text, { n: 'Vrátit', f: () => { zapis(['e', id], e); if (s) zapis(['stk', s.id], s); render(); } });
+      break;
+    }
+    case 'rcai': precti(id, U, ctxAkce()); return;
+    case 'rcden': { const s = D.stk[id]; if (!s || !s.ai || !s.ai.datum) return; zapis(['stk', id, 'd'], s.ai.datum); U.day = s.ai.datum; U.smer = s.ai.datum < s.d ? -1 : 1; break; }
     case 'rcok': {
-      const amt = num($('#rcK').value), ob = $('#rcO').value.trim();
-      if (!(amt > 0)) { $('#rcK').focus(); return; }
+      const amt = num($('#rcK-' + id).value), ob = $('#rcO-' + id).value.trim();
+      if (!(amt > 0)) { $('#rcK-' + id).focus(); return; }
       zapis(['stk', id, 'obchod'], ob);
-      const e = { id: uid(), d: D.stk[id].d, ts: Date.now(), typ: 'v', kc: amt, text: ob || 'Nákup podle účtenky', kat: 'jidlo', pen: Q.pen, tagy: [], rc: id };
+      const e = { id: uid(), d: D.stk[id].d, ts: Date.now(), typ: 'v', kc: amt, text: ob || 'Nákup podle účtenky', kat: $('#rcC-' + id).value || 'jidlo', pen: Q.pen, tagy: [], rc: id };
       zapis(['e', e.id], e); break;
     }
-    case 'rcdel': zapis(['stk', id], null); break;
+    case 'rcdel': { const s = D.stk[id]; zapis(['stk', id], null); if (s) toast('Účtenka odlepena.', { n: 'Vrátit', f: () => { zapis(['stk', id], s); render(); } }); break; }
+    case 'zavrit': zavritKnihu(); return;
     case 'pred': {
       const pp = num($('#pp').value), pv = num($('#pv').value);
       if (!(pp >= 0) || !(pv > 0)) { $('#pv').focus(); return; }
@@ -336,13 +357,19 @@ document.addEventListener('click', ev => {
     case 'reset': resetLocal(id === 'demo'); break;
     case 'logout': if (api) api.odhlasit(); return;
     case 'showlogin': ukazLogin(); return;
-    default: { const c = { render, toast, zvuk }; let r = zivotAkce(a, t, U, c); if (!r) r = kronikaAkce(a, t, U, c); if (!r) r = trackerAkce(a, t, U, c); if (!r || r === 'stop') return; }
+    default: {
+      const c = ctxAkce();
+      let r = zivotAkce(a, t, U, c);
+      for (const f of [kronikaAkce, trackerAkce, tydenAkce, nalepkyAkce, tiskAkce]) if (!r) r = f(a, t, U, c);
+      if (!r || r === 'stop') return;
+    }
   }
   saveUI(); render();
 });
 document.addEventListener('change', ev => {
   const t = ev.target, a = t.dataset && t.dataset.act;
   if (a === 'kcol') { zapis(['kats', t.dataset.id, 'c'], t.value); render(); }
+  if (a === 'wtext') ulozText(t);
   if (a === 'pstart') { const v = num(t.value); zapis(['pen', t.dataset.id, 'start'], isNaN(v) ? 0 : v); render(); }
 });
 // Menu na telefonu: tlačítko v deskách rozbalí seznam stránek
@@ -356,7 +383,11 @@ function route() {
     try { history.replaceState(null, '', '#den'); } catch (err) { /* náhled v rámečku */ }
     saveUI(); render(); otevritBlocek({ mic: h === 'zapis-mic' }); return;
   }
-  if (VIEWS[h]) U.view = h === 'ukoly' ? 'cile' : h;
+  if (VIEWS[h]) {
+    const nove = h === 'ukoly' ? 'cile' : h, ids = poradiMenu(), i0 = ids.indexOf(U.view), i1 = ids.indexOf(nove);
+    if (!prvniStart && nove !== U.view && i0 >= 0 && i1 >= 0) U.smer = i1 > i0 ? 1 : -1;
+    U.view = nove;
+  }
   else if (!h && prvniStart) U.view = startView();
   prvniStart = false;
   saveUI(); render();
@@ -404,11 +435,23 @@ async function prihlas(co) {
     else if (co === 'reset') { if (!em) { msg.textContent = 'Napiš nahoru svůj e-mail a klikni znovu.'; return; } await api.reset(em); msg.textContent = 'Poslal jsem odkaz na nastavení hesla na ' + em + '.'; }
   } catch (e) { msg.textContent = (api.chyba || (x => x.message))(e); }
 }
-let blocekInit = false;
+let blocekInit = false, knihaUkazana = false;
+const ctxAkce = () => ({ render, toast, zvuk, S, U });
+// Listování: šipky v hlavičce stránky, jinak další/předchozí stránka v menu
+function dalsiStrana(smer) {
+  const b = sipkaStranky(smer); if (b) { b.click(); return; }
+  const ids = poradiMenu(), i = ids.indexOf(U.view === 'ukoly' ? 'cile' : U.view), n = ids[i + smer];
+  if (n) location.hash = '#' + n;
+}
+function zavritKnihu() { ukazZavrenou(S(), jmeno(), () => {}, zvuk); }
+const jmeno = () => (user && (user.displayName || (user.email || '').split('@')[0])) || '';
 function spust() {
   $('#login').hidden = true; $('#app').hidden = false; st.onChange = zmenaDat;
-  if (!blocekInit) { initBlocek(() => render()); blocekInit = true; }
+  if (!blocekInit) { initBlocek(() => render()); initNalepky(U, ctxAkce()); initListovani(dalsiStrana); blocekInit = true; }
+  const odkaz = /zapis/.test(location.hash);
   route(); nativniOdkazy();
+  if (!knihaUkazana && !odkaz && S().nast.zavrena !== false) ukazZavrenou(S(), jmeno(), () => {}, zvuk);
+  knihaUkazana = true;
 }
 
 async function boot() {

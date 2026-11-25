@@ -1,4 +1,4 @@
-// Finanční deník · logic.js · v0.5.0
+// Finanční deník · logic.js · v0.6.0
 // Čistá logika bez DOM: rozpoznání zápisu, tankování, součty, hledání.
 // Testy: tests/logic.test.mjs (node tests/logic.test.mjs)
 
@@ -226,4 +226,36 @@ export function rokVPuntikach(S, rok, dnesD) {
     out.push({ ym, dny, inc, exp, lim, pecet: hotovy && zap && inc > exp && (!pr || exp <= pr.vydaje) });
   }
   return out;
+}
+
+// ---------- v0.6: týdenní list ----------
+// Pondělí týdne, ve kterém leží den d (YYYY-MM-DD)
+export function pondeli(d) { const x = new Date(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)); return addDen(d, -((x.getDay() + 6) % 7)); }
+// Souhrn týdne od pondělí po: dny, součty, srovnání s minulým týdnem, dny v limitu, emoce, největší výdaj
+export function tydenStat(S, po, dnesD) {
+  const vse = vals(S.e), dny = [];
+  for (let i = 0; i < 7; i++) {
+    const d = addDen(po, i), l = vse.filter(e => e.d === d);
+    const lim = limitDne(S, d.slice(0, 7)), vol = l.filter(volny).reduce((s, e) => s + e.kc, 0);
+    dny.push({ d, l, vyd: sumT(l, 'v'), prij: sumT(l, 'p'), vol, lim, st: d > dnesD || lim == null ? 'nic' : vol <= lim ? 'ok' : 'nad', note: (S.notes || {})[d] || '' });
+  }
+  const minuly = vse.filter(e => e.d >= addDen(po, -7) && e.d < po);
+  const vyd = dny.reduce((s, x) => s + x.vyd, 0), prij = dny.reduce((s, x) => s + x.prij, 0);
+  const vsechny = dny.flatMap(x => x.l).filter(e => e.typ === 'v');
+  const kats = {}; vsechny.forEach(e => { kats[e.kat] = (kats[e.kat] || 0) + e.kc; });
+  const pc = { radost: 0, nutnost: 0, impulz: 0 }; vsechny.forEach(e => { if (pc[e.pocit] != null) pc[e.pocit] += e.kc; });
+  const ubehle = dny.filter(x => x.st !== 'nic');
+  return {
+    po, ne: addDen(po, 6), dny, vyd, prij, minule: sumT(minuly, 'v'), maMinule: minuly.length > 0,
+    vol: dny.reduce((s, x) => s + x.vol, 0), limit: dny.every(x => x.lim != null) ? dny.reduce((s, x) => s + x.lim, 0) : null,
+    vLimitu: ubehle.filter(x => x.st === 'ok').length, ubehlo: ubehle.length,
+    nejvetsi: vsechny.sort((a, b) => b.kc - a.kc)[0] || null, kats: Object.entries(kats).sort((a, b) => b[1] - a[1]), pocit: pc,
+    pocet: vsechny.length, zapsanoDni: dny.filter(x => x.l.length || x.note).length,
+  };
+}
+// Číslo týdne podle ISO 8601
+export function cisloTydne(po) {
+  const d = new Date(Date.UTC(+po.slice(0, 4), +po.slice(5, 7) - 1, +po.slice(8, 10) + 3));
+  const r = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+  return 1 + Math.round(((d - r) / 864e5 - 3 + (r.getUTCDay() + 6) % 7) / 7);
 }

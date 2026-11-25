@@ -1,4 +1,4 @@
-// Finanční deník · blocek.js · v0.5.0
+// Finanční deník · blocek.js · v0.6.0
 // „Trhací bloček“ – rychlý zápis z kapsy. Otevírá ho widget na ploše Androidu,
 // zkratka ikony (dlouhé podržení) nebo adresa #zapis / #zapis-mic.
 // Zápis jde rovnou do deníku (do dnešního dne), stejně jako ze stránky Den.
@@ -80,10 +80,17 @@ function ulozit() {
   B.poZapsani();
 }
 
-export function toast(t) {
+// Krátká zpráva dole; volitelně s tlačítkem (např. { n: 'Vrátit', f: () => … })
+export function toast(t, akce) {
   const el = $('#toast'); if (!el) return;
-  el.textContent = t; el.hidden = false;
-  clearTimeout(toast.tm); toast.tm = setTimeout(() => { el.hidden = true; }, 3200);
+  el.textContent = t;
+  if (akce) {
+    const b = document.createElement('button'); b.className = 'toast-b'; b.type = 'button'; b.textContent = akce.n;
+    b.addEventListener('click', () => { el.hidden = true; akce.f(); });
+    el.append(' ', b);
+  }
+  el.hidden = false;
+  clearTimeout(toast.tm); toast.tm = setTimeout(() => { el.hidden = true; }, akce ? 6000 : 3200);
 }
 
 function mluv() {
