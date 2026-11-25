@@ -1,13 +1,18 @@
 # Finanční deník
 
 Zápisník na peníze, který se počítá sám. Samostatná appka vycházející z Deníku ve FinanceFlow.
-Verze **0.4.0** (25. 11. 2026).
+Verze **0.5.0** (25. 11. 2026).
 
 ## Co umí v0.1
 
 - Kniha v kožených deskách s menu, rejstříkem a čísly stran. Vzhled si člověk skládá sám: 4 režimy knihy
   (zápisník, pokladní kniha, analytický, rodinný), 6 desek, 4 stoly, 7 barev papíru, 6 druhů linek, 7 písem, 8 barev písma.
 - **Přehled:** příjmy/výdaje/zůstatek, budík plánu, shrnutí měsíce na lepíku, akvarelové grafy (sloupce, koláč), cíle, úkoly, ocenění.
+- **Cíle** kreslené jako sklenice s mincemi, teploměr nebo cihlová zeď; vklady s historií.
+- **Tracker** návyků pro sebe i pro děti (ano/ne nebo počet), kalendář políček, série, graf po měsících.
+- **Pravidelné platby** tužkou, po zaplacení inkoust a razítko ZAPLACENO; razítko SPLNĚNO u úkolů; volitelné zvuky.
+- **Emoce u výdajů** (radost / nutnost / impulz) a jejich podíl v měsíci.
+- **Roční bilance:** rok v puntících (den v limitu / nad limitem), zlaté pečeti měsíců, rok v číslech.
 - **Pokladní kniha** s průběžným zůstatkem, **Grafy a statistiky** (1M/3M/6M/1R), **Cíle a úkoly**, **Ocenění** (pečeti).
 - **Den:** zápisek se zvýrazňovačem (5 barev) a diktováním, zápis výdaje nebo příjmu jedním řádkem
   („káva 65 #práce“, „Tankování 20 l za 750 Kč, nájezd 83 087 km“), kategorie, peněženka, tagy,
@@ -94,6 +99,8 @@ database.rules.json  pravidla databáze
 firebase.json        hosting + pravidla
   js/kronika.js      Přehled, Pokladní kniha, Grafy, Cíle a úkoly, Ocenění, Vzhled a nastavení
   css/fonty.css      písma uložená v appce (fonts/, licence OFL) – fungují offline
+  js/sklenice.js     kreslené cíle (sklenice, teploměr, cihlová zeď)
+  js/tracker.js      tracker návyků
   js/zivot.js        Kniha života (stránky a akce)
   js/zivot-data.js   Kniha života – věk, zuby FDI, ukázková data
   js/blocek.js       trhací bloček (rychlý zápis), otevírá ho widget a zkratky

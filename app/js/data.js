@@ -1,4 +1,4 @@
-// Finanční deník · data.js · v0.4.0
+// Finanční deník · data.js · v0.5.0
 // Vzhledy, písma, výchozí kategorie, prázdný deník a ukázkový měsíc.
 
 import { iso, addD, mk, p2, uid } from './util.js';
@@ -79,7 +79,7 @@ export function prazdny() {
   const now = Date.now();
   return {
     nast: { ...NAST }, kats: byId(KATS.map(k => ({ ...k }))), pen: JSON.parse(JSON.stringify(PEN)),
-    e: {}, notes: {}, stk: {}, pred: {}, vozy: {}, ukoly: {}, osoby: {}, zivot: {}, cile: {},
+    e: {}, notes: {}, stk: {}, pred: {}, vozy: {}, ukoly: {}, osoby: {}, zivot: {}, cile: {}, trackery: {}, pravidelne: {},
     ucet: { vytvoreno: now, trialDo: now + TRIAL_DNI * 864e5 },
   };
 }
@@ -111,10 +111,26 @@ export function ukazka() {
     if (i === 2) add(dm(12), 'v', 3200, 'Servis auta', 'auto', []);
     if (i === 4) add(dm(20), 'p', 2500, 'Prodej kola', 'prij', []);
   }
+  // Pravidelné platby + označení zápisů, které je platí
+  S.pravidelne = {
+    najem: { id: 'najem', nazev: 'Nájem', kc: 12500, den: 1, kat: 'byd', pen: 'ucet' },
+    elektrina: { id: 'elektrina', nazev: 'Záloha na elektřinu', kc: 1850, den: 5, kat: 'byd', pen: 'ucet' },
+    netflix: { id: 'netflix', nazev: 'Netflix', kc: 259, den: 6, kat: 'predpl', pen: 'ucet' },
+    spotify: { id: 'spotify', nazev: 'Spotify', kc: 169, den: 20, kat: 'predpl', pen: 'ucet' },
+  };
+  const PRAV = { 'Nájem': 'najem', 'Záloha na elektřinu': 'elektrina', 'Netflix': 'netflix', 'Spotify': 'spotify' };
+  const POCIT = { 'kino ve dvou': 'radost', 'pizza': 'radost', 'dárek pro mamku': 'radost', 'oběd s kolegy': 'radost', 'zimní boty': 'nutnost', 'Velký nákup v Lidlu': 'nutnost', 'Kaufland': 'nutnost', 'Albert': 'nutnost', 'lékárna – vitamíny': 'nutnost', 'káva cestou do práce': 'impulz', 'Lidl': 'nutnost' };
+  // Trackery: vlastní i pro dítě (dny = { datum: počet })
+  let sd = 11;
+  const rnd = () => (sd = sd * 16807 % 2147483647) / 2147483647;
+  const tr = (id, nazev, osoba, rezim, barva, f) => { const dny = {}; for (let i = 75; i >= 0; i--) { const dd = addD(today, -i), n = f(i); if (n > 0) dny[dd] = n; } S.trackery[id] = { id, nazev, osoba, rezim, barva, dny }; };
+  tr('holeni', 'Holení', '', 'ano', '#3d7ea6', i => (i % 3 === 0 || rnd() < 0.12 ? 1 : 0));
+  tr('zuby', 'Čištění zubů večer', 'ema', 'ano', '#d4a017', i => (rnd() < 0.86 ? 1 : 0));
+  tr('kava', 'Káva', '', 'pocet', '#8a5a3c', i => Math.floor(rnd() * 3.2));
   S.cile = {
-    dovolena: { id: 'dovolena', nazev: 'Dovolená u moře', typ: 'dovolena', cil: 60000, nasporeno: 36000, do: (+first.slice(0, 4) + 1) + '-06-30' },
-    rezerva: { id: 'rezerva', nazev: 'Rezerva 100 000 Kč', typ: 'rezerva', cil: 100000, nasporeno: 35000, do: (+first.slice(0, 4) + 1) + '-12-31' },
-    auto: { id: 'auto', nazev: 'Nové auto', typ: 'auto', cil: 250000, nasporeno: 0, do: (+first.slice(0, 4) + 2) + '-12-31' },
+    dovolena: { id: 'dovolena', nazev: 'Dovolená u moře', typ: 'dovolena', vzhled: 'sklenice', cil: 60000, nasporeno: 36000, vklady: { v1: { d: addD(first, -60), kc: 20000 }, v2: { d: addD(first, -30), kc: 10000 }, v3: { d: dd(2), kc: 6000 } }, do: (+first.slice(0, 4) + 1) + '-06-30' },
+    rezerva: { id: 'rezerva', nazev: 'Rezerva 100 000 Kč', typ: 'rezerva', vzhled: 'zed', cil: 100000, nasporeno: 35000, do: (+first.slice(0, 4) + 1) + '-12-31' },
+    auto: { id: 'auto', nazev: 'Nové auto', typ: 'auto', vzhled: 'teplomer', cil: 250000, nasporeno: 18000, do: (+first.slice(0, 4) + 2) + '-12-31' },
   };
   const L = [
     [1, () => add(dd(1), 'p', 32000, 'Výplata za minulý měsíc', 'vypl', [])],
@@ -142,6 +158,7 @@ export function ukazka() {
     [21, () => add(dd(21), 'v', 65, 'káva', 'rest', ['káva'], { pen: 'hot' })],
   ];
   L.forEach(x => { if (x[0] <= td) x[1](); });
+  Object.values(S.e).forEach(e => { if (PRAV[e.text]) e.prav = PRAV[e.text]; if (POCIT[e.text]) e.pocit = POCIT[e.text]; });
   S.notes[today] = 'Dneska jsem {{y|konečně}} dotankoval a vyšlo to levněji než minule.\nZítra {{p|nezapomenout}} zaplatit pojištění auta.';
   S.pred[ym] = { zapsano: first, prijem: 32000, vydaje: 27500 };
   const prevYm = mk(addD(first, -1));

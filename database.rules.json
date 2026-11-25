@@ -65,6 +65,19 @@
         "cile": {
           ".write": "auth != null && auth.uid === $uid"
         },
+        "trackery": {
+          ".write": "auth != null && auth.uid === $uid",
+          "$id": {
+            "dny": {
+              "$d": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 1000"
+              }
+            }
+          }
+        },
+        "pravidelne": {
+          ".write": "auth != null && auth.uid === $uid"
+        },
         "$jine": {
           ".validate": false
         }

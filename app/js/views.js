@@ -1,9 +1,9 @@
-// Finanční deník · views.js · v0.4.0
+// Finanční deník · views.js · v0.5.0
 // Každá stránka vrací [levá strana, pravá strana] jako HTML. Žádné zápisy dat – ty dělá app.js.
 
 import { esc, kc, kc2, nf, pd, iso, mk, dim, dnes, DNY, MG, MN, ymLabel, datKratce, vals } from './util.js';
 import { HL } from './data.js';
-import { tankStats, sumT, monthE, deser, zustatek, hledej, plain } from './logic.js';
+import { tankStats, sumT, monthE, deser, zustatek, hledej, plain, pravidelneMesic, pocitStat } from './logic.js';
 
 export const kat = (S, id) => (S.kats || {})[id] || { id: '', n: 'Bez kategorie', c: '#999', t: 'v' };
 const katsSorted = (S, t) => vals(S.kats).filter(k => !t || k.t === t).sort((a, b) => (a.ord ?? 99) - (b.ord ?? 99) || a.n.localeCompare(b.n, 'cs'));
@@ -12,6 +12,12 @@ const vozy = S => vals(S.vozy).sort((a, b) => a.n.localeCompare(b.n, 'cs'));
 const tagsHTML = e => (e.tagy || []).map(t => '<span class="tag">#' + esc(t) + '</span>').join('');
 const sortE = l => l.sort((a, b) => (a.d.localeCompare(b.d)) || ((a.ts || 0) - (b.ts || 0)));
 
+// Emoční otisk výdaje: hodnotí jen uživatel, appka nikdy
+export const POCITY = [
+  ['radost', 'Udělalo mi to radost', '<path d="M10 17s-6-3.6-6-8a3.2 3.2 0 0 1 6-1.6A3.2 3.2 0 0 1 16 9c0 4.4-6 8-6 8z" fill="currentColor"/>'],
+  ['nutnost', 'Nutnost', '<circle cx="10" cy="10" r="4" fill="currentColor"/>'],
+  ['impulz', 'Impulzivní nákup', '<path d="M6 15h8.5a3.5 3.5 0 0 0 .4-7A4.5 4.5 0 0 0 6.3 9 3 3 0 0 0 6 15z" fill="currentColor"/>'],
+];
 export function entHTML(S, e, sDatem) {
   const k = kat(S, e.kat);
   let extra = '';
@@ -23,7 +29,8 @@ export function entHTML(S, e, sDatem) {
   return '<li class="ent"><span class="t">' + esc(e.text) + '</span><span class="a ' + (e.typ === 'p' ? 'p' : '') + '">' + (e.typ === 'p' ? '+' : '') + kc(e.kc) + '</span>' +
     '<button class="del" data-act="del" data-id="' + e.id + '" aria-label="Smazat zápis">×</button>' +
     '<span class="meta">' + (sDatem ? '<a href="#den" data-act="goday" data-id="' + e.d + '">' + datKratce(e.d) + '</a>' : '') +
-    '<span><i class="dot" style="--c:' + k.c + '"></i>' + esc(k.n) + '</span>' + extra + (pen && e.pen && e.pen !== 'ucet' ? '<span>' + esc(pen.n) + '</span>' : '') + tagsHTML(e) + '</span></li>';
+    '<span><i class="dot" style="--c:' + k.c + '"></i>' + esc(k.n) + '</span>' + extra + (pen && e.pen && e.pen !== 'ucet' ? '<span>' + esc(pen.n) + '</span>' : '') + tagsHTML(e) +
+    (e.typ === 'v' ? '<span class="pocit" role="group" aria-label="Jak se z výdaje cítíš">' + POCITY.map(([k, n, ik]) => '<button class="pc' + (e.pocit === k ? ' on' : '') + '" data-act="pocit" data-id="' + e.id + '" data-v="' + k + '" title="' + n + '" aria-label="' + n + '" aria-pressed="' + (e.pocit === k) + '"><svg viewBox="0 0 20 20" aria-hidden="true">' + ik + '</svg></button>').join('') + '</span>' : '') + '</span></li>';
 }
 
 function rcHTML(S, s) {
@@ -43,6 +50,7 @@ export function taskHTML(S, U, u) {
   const info = (carry ? 'přeneseno z ' + MG[+u.mesic.slice(5) - 1] + (u.termin ? ' · ' : '') : '') + (u.termin ? 'termín ' + datKratce(u.termin) : '');
   return '<div class="task ' + (u.hotovo ? 'done' : '') + '"><input type="checkbox" data-act="tdone" data-id="' + u.id + '" ' + (u.hotovo ? 'checked' : '') + ' aria-label="Splněno: ' + esc(u.text) + '">' +
     '<span class="t">' + esc(u.text) + (info ? '<small' + (carry ? ' class="carry"' : '') + '>' + info + '</small>' : '') + '</span>' +
+    (u.hotovo ? '<i class="razitko-ok' + (U.novyUkol === u.id ? ' bum' : '') + '" aria-hidden="true">splněno</i>' : '') +
     '<button class="del" data-act="tdel" data-id="' + u.id + '" aria-label="Smazat úkol">×</button></div>';
 }
 
@@ -87,14 +95,35 @@ export function vMesic(S, U) {
     '<h3 class="sub">Co čekám</h3>' + (pr
       ? '<dl class="kv"><dt>Zapsáno perem</dt><dd>' + pd(pr.zapsano).getDate() + '. ' + MG[pd(pr.zapsano).getMonth()] + '</dd><dt>Očekávaný příjem</dt><dd>' + kc(pr.prijem) + '</dd><dt>Plánované výdaje</dt><dd>' + kc(pr.vydaje) + '</dd><dt>Má zbýt</dt><dd>' + kc(pr.prijem - pr.vydaje) + '</dd></dl><p class="note2">Zapsaná predikce se už nemění. Skutečnost vpravo se počítá sama ze zápisů.</p>'
       : '<p class="note2">Na začátku měsíce si zapiš, co čekáš. Výdaje předvyplním průměrem posledních měsíců.</p><div class="row"><label class="f">Očekávaný příjem, Kč<input id="pp" inputmode="numeric" value="' + (inc || '') + '"></label><label class="f">Plánované výdaje, Kč<input id="pv" inputmode="numeric" value="' + defV + '"></label></div><button class="btn" data-act="pred">Zapsat perem</button>') +
+    pravHTML(S, ym, cur, now) +
     '<h3 class="sub">Kam peníze šly</h3>' + (ks.length ? '<div class="bars">' + ks.map(([k, v]) => { const o = kat(S, k); return '<div class="b"><span>' + esc(o.n) + '</span><div class="tr"><div class="fl" style="--c:' + o.c + ';width:' + Math.max(3, v / mx * 100) + '%"></div></div><span class="v">' + kc(v) + '</span></div>'; }).join('') + '</div>' : '<p class="empty">V tomto měsíci zatím žádné výdaje.</p>');
   const diff = pr ? Math.round((ex - pr.vydaje * (cur ? pd(now).getDate() / N : 1)) / Math.max(1, pr.vydaje) * 100) : null;
   const top = list.filter(e => e.typ === 'v').sort((a, b) => b.kc - a.kc).slice(0, 5);
   const R = '<h3 class="sub" style="margin-top:4px">Jak to dopadlo' + (cur ? ' (zatím)' : '') + '</h3><div class="figs"><div><b>' + kc(inc) + '</b><span>příjmy</span></div><div><b>' + kc(ex) + '</b><span>výdaje</span></div><div><b>' + kc(inc - ex) + '</b><span>zůstatek</span></div></div>' +
     (pr && (cur || ym < mk(now)) ? '<p class="note2">' + (diff <= 0 ? 'Utrácíš o ' + Math.abs(diff) + ' % méně' : 'Utrácíš o ' + diff + ' % víc') + ', než odpovídá plánu' + (cur ? ' k dnešku' : '') + '.</p>' : '') +
     '<div class="fig"><svg id="mch" role="img" aria-label="Výdaje den po dni proti plánu"></svg></div>' +
+    pocitHTML(S, ym) +
     '<h3 class="sub">Pět největších výdajů</h3>' + (top.length ? '<ul class="list">' + top.map(e => entHTML(S, e, true)).join('') + '</ul>' : '<p class="empty">Nic tu není.</p>');
   return [L, R];
+}
+
+// Pravidelné platby: dokud nejsou zaplacené, jsou „tužkou“; po zaplacení inkoust a razítko ZAPLACENO
+function pravHTML(S, ym, cur, now) {
+  const l = pravidelneMesic(S, ym), N = dim(ym);
+  const zbyva = l.filter(x => !x.zapl).reduce((s, x) => s + x.p.kc, 0);
+  return '<h3 class="sub">Pravidelné platby</h3>' + (l.length ? '<ul class="list prav">' + l.map(({ p, zapl }) => '<li class="pp' + (zapl ? ' zapl' : '') + '"><span class="pd">' + Math.min(p.den || 1, N) + '.</span><span class="pn">' + esc(p.nazev) + '</span><span class="pk">' + kc(zapl ? zapl.kc : p.kc) + '</span>' +
+      (zapl ? '<i class="razitko-zapl" aria-label="zaplaceno">zaplaceno</i>' : '<button class="btn ghost mini" data-act="pzapl" data-id="' + p.id + '">Zaplaceno</button>') +
+      '<button class="del" data-act="pravdel" data-id="' + p.id + '" aria-label="Zrušit pravidelnou platbu ' + esc(p.nazev) + '">×</button></li>').join('') + '</ul>' +
+      (zbyva ? '<p class="note2">Ještě nezaplaceno: <b>' + kc(zbyva) + '</b></p>' : '<p class="note2">Všechny pravidelné platby jsou zaplacené.</p>') : '<p class="empty">Žádné pravidelné platby. Přidej nájem, energie, předplatné…</p>') +
+    '<details class="pridat"><summary>+ Přidat pravidelnou platbu</summary><div class="row"><label class="f">Název<input id="prn" placeholder="např. Nájem"></label><label class="f">Kč<input id="prk" inputmode="decimal"></label><label class="f">Den v měsíci<input id="prd" inputmode="numeric" value="1"></label></div>' +
+    '<div class="row"><label class="f">Kategorie<select id="prc">' + katsSorted(S, 'v').map(k => '<option value="' + k.id + '">' + esc(k.n) + '</option>').join('') + '</select></label><label class="f">Peněženka<select id="prp">' + pens(S).map(p => '<option value="' + p.id + '">' + esc(p.n) + '</option>').join('') + '</select></label></div><button class="btn" data-act="pravadd">Přidat</button></details>';
+}
+// Emoční otisk měsíce: kolik peněz šlo na radost, nutnosti a impulzy
+function pocitHTML(S, ym) {
+  const p = pocitStat(S, ym);
+  if (p.pocet < 1) return '<h3 class="sub">Radost, nutnost, impulz</h3><p class="note2">U výdajů můžeš klepnout na srdíčko, tečku nebo mráček. Tady pak uvidíš, kolik peněz šlo na věci, které ti udělaly radost.</p>';
+  return '<h3 class="sub">Radost, nutnost, impulz</h3><div class="pocitbar">' + POCITY.map(([k, n]) => p[k] ? '<i class="pb-' + k + '" style="width:' + p.pct(k) + '%" title="' + n + '"></i>' : '').join('') + '</div>' +
+    '<p class="note2"><span class="pl-radost">radost ' + p.pct('radost') + ' %</span> · <span class="pl-nutnost">nutnosti ' + p.pct('nutnost') + ' %</span> · <span class="pl-impulz">impulzy ' + p.pct('impulz') + ' %</span> – z ' + p.pocet + ' označených výdajů (' + kc(p.tot) + ').</p>';
 }
 
 export function vTank(S, U) {

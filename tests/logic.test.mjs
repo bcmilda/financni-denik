@@ -1,6 +1,6 @@
 // Finanční deník · testy čisté logiky · spuštění: node tests/logic.test.mjs
 import assert from 'node:assert/strict';
-import { parse, tankStats, tachOk, hledej, zustatek, deser, plain, mesice, souhrnMesice, stavKDatu, oceneni, posunYm, katObdobi } from '../app/js/logic.js';
+import { parse, tankStats, tachOk, hledej, zustatek, deser, plain, mesice, souhrnMesice, stavKDatu, oceneni, posunYm, katObdobi, trackerStat, pravidelneMesic, pocitStat, rokVPuntikach, limitDne } from '../app/js/logic.js';
 import { prazdny, ukazka } from '../app/js/data.js';
 import { vek, nazevZubu, oblouk, stavZubu } from '../app/js/zivot-data.js';
 
@@ -109,5 +109,33 @@ t('ocenění z dat', () => {
   const o = Object.fromEntries(oceneni(S, '2026-11-20').map(x => [x.id, x.kdy]));
   assert.equal(o.prvni, '2026-10-01'); assert.equal(o.tyden, '2026-10-07'); assert.ok(o.plus); assert.ok(o.plan);
   assert.ok(o.pulcil); assert.equal(o.cil, null); assert.equal(o.rok, null);
+});
+t('tracker: série, nejdelší série, měsíce', () => {
+  const tr = { dny: { '2026-11-20': 1, '2026-11-21': 1, '2026-11-23': 2, '2026-11-24': 1, '2026-11-25': 1, '2026-10-02': 1 } };
+  const s = trackerStat(tr, '2026-11-25');
+  assert.equal(s.serie, 3); assert.equal(s.nejdelsi, 3); assert.equal(s.mesice['2026-11'], 6); assert.equal(s.predDny, 0);
+  assert.equal(trackerStat(tr, '2026-11-26').serie, 3, 'včerejší série platí');
+  assert.equal(trackerStat(tr, '2026-11-28').serie, 0);
+  assert.equal(trackerStat({}, '2026-11-25').posledni, null);
+});
+t('pravidelné platby a emoce', () => {
+  const S = prazdny();
+  S.pravidelne = { n: { id: 'n', nazev: 'Nájem', kc: 12000, den: 1 }, s: { id: 's', nazev: 'Spotify', kc: 169, den: 20 }, z: { id: 'z', nazev: 'Zrušeno', kc: 1, den: 2, aktivni: false } };
+  S.e = { a: { id: 'a', d: '2026-11-01', typ: 'v', kc: 12000, prav: 'n', kat: 'byd', tagy: [] }, b: { id: 'b', d: '2026-11-03', typ: 'v', kc: 300, pocit: 'radost', kat: 'zab', tagy: [] }, c: { id: 'c', d: '2026-11-04', typ: 'v', kc: 100, pocit: 'impulz', kat: 'rest', tagy: [] } };
+  const l = pravidelneMesic(S, '2026-11');
+  assert.deepEqual(l.map(x => [x.p.id, !!x.zapl]), [['n', true], ['s', false]]);
+  const p = pocitStat(S, '2026-11');
+  assert.equal(p.pct('radost'), 75); assert.equal(p.pocet, 2);
+});
+t('rok v puntících a denní limit', () => {
+  const S = prazdny();
+  S.pred['2026-11'] = { prijem: 30000, vydaje: 15000 };
+  S.pravidelne = { n: { id: 'n', nazev: 'Nájem', kc: 12000, den: 1 } };
+  S.e = { a: { id: 'a', d: '2026-11-01', typ: 'v', kc: 12000, prav: 'n', kat: 'byd', tagy: [] }, b: { id: 'b', d: '2026-11-02', typ: 'v', kc: 50, kat: 'jidlo', tagy: [] }, c: { id: 'c', d: '2026-11-03', typ: 'v', kc: 500, kat: 'jidlo', tagy: [] }, d: { id: 'd', d: '2026-11-01', typ: 'p', kc: 30000, kat: 'vypl', tagy: [] } };
+  assert.equal(limitDne(S, '2026-11'), 100);
+  const r = rokVPuntikach(S, 2026, '2026-11-03'), nov = r[10];
+  assert.deepEqual(nov.dny.slice(0, 4).map(d => d.st), ['ok', 'ok', 'nad', 'nic'], 'nájem se nepočítá, budoucnost je prázdná');
+  assert.equal(r[0].dny[0].st, 'nic');
+  assert.equal(rokVPuntikach(S, 2026, '2026-12-15')[10].pecet, true);
 });
 console.log(`\n${ok} testů prošlo`);

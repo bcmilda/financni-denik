@@ -1,11 +1,12 @@
-// Finanční deník · kronika.js · v0.4.0
+// Finanční deník · kronika.js · v0.5.0
 // Stránky „finanční kroniky“: Přehled, Pokladní kniha, Grafy a statistiky, Cíle a úkoly, Ocenění, Vzhled a nastavení.
 
 import { esc, kc, nf, num, pd, mk, dim, dnes, uid, vals, MN, MG, ymLabel, datKratce, VERZE } from './util.js';
 import { DESKY, STUL, PAPIR, LINKY, FONTS, INKS, REZIMY } from './data.js';
-import { souhrnMesice, posunYm, stavKDatu, oceneni, katObdobi, sumT, monthE } from './logic.js';
+import { souhrnMesice, posunYm, stavKDatu, oceneni, katObdobi, sumT, monthE, rokVPuntikach, pocitStat } from './logic.js';
 import { st, zapis } from './store.js';
 import { kat, taskHTML } from './views.js';
+import { kresliCil, VZHLEDY_CILE } from './sklenice.js';
 
 const $ = s => document.querySelector(s);
 const pct = z => (z == null ? '' : '<span class="zm ' + (z > 0 ? 'nah' : z < 0 ? 'dol' : '') + '">' + (z > 0 ? '↑ +' : z < 0 ? '↓ ' : '') + z + ' %</span>');
@@ -44,6 +45,8 @@ export function vPrehled(S, U) {
   if (s.zExp != null) fakta.push(s.zExp <= 0 ? 'Výdaje jsou o ' + Math.abs(s.zExp) + ' % nižší než minulý měsíc.' : 'Výdaje jsou o ' + s.zExp + ' % vyšší než minulý měsíc.');
   if (s.kats[0] && s.exp) fakta.push('Nejvíc šlo na ' + kat(S, s.kats[0][0]).n.toLowerCase() + ' (' + Math.round(s.kats[0][1] / s.exp * 100) + ' %).');
   if (pr) fakta.push('Z plánu je utraceno ' + Math.round(s.exp / Math.max(1, pr.vydaje) * 100) + ' %' + (cur ? ', uplynulo ' + Math.round(cast * 100) + ' % měsíce.' : '.'));
+  const pc = pocitStat(S, ym);
+  if (pc.pocet >= 3) fakta.push('Na radost šlo ' + pc.pct('radost') + ' % označených výdajů, na impulzy ' + pc.pct('impulz') + ' %.');
   const uk = vals(S.ukoly).filter(u => u.mesic === ym || (u.mesic < ym && !u.hotovo));
   if (uk.length) fakta.push('Splněno ' + uk.filter(u => u.hotovo).length + ' z ' + uk.length + ' úkolů.');
   const L = mHead(U, 'Přehled') +
@@ -108,10 +111,21 @@ export const grafyObdobi = U => +(U.obd || 6);
 export function vCile(S, U) {
   const cile = vals(S.cile).sort((a, b) => (a.do || '9').localeCompare(b.do || '9'));
   const ym = mk(U.day), all = vals(S.ukoly), act = all.filter(u => !u.hotovo && u.mesic <= ym), done = all.filter(u => u.hotovo && u.mesic === ym);
-  const L = '<h2 class="pt">Cíle</h2><p class="ps">Na co šetříš. Každou odloženou částku sem připiš.</p>' +
-    cile.map(c => '<div class="cilbox">' + cilHTML(c) + '<div class="cilakce"><input class="inp mini" inputmode="decimal" id="vk-' + c.id + '" placeholder="Kč" aria-label="Částka k připsání"><button class="btn ghost" data-act="cvklad" data-id="' + c.id + '">Připsat</button><button class="del" data-act="cdel" data-id="' + c.id + '" aria-label="Smazat cíl">×</button></div></div>').join('') +
+  const karta = c => {
+    const p = c.cil > 0 ? Math.min(100, Math.round((c.nasporeno || 0) / c.cil * 100)) : 0, vk = Object.values(c.vklady || {}).sort((a, b) => b.d.localeCompare(a.d)).slice(0, 3);
+    return '<article class="cilkarta">' + '<div class="cilobr">' + kresliCil({ ...c, novy: U.novyCil === c.id }) + '</div><div class="cilinfo"><h4>' + esc(c.nazev) + '</h4>' +
+      '<p class="cilcis"><b>' + kc(c.nasporeno || 0) + '</b> z ' + kc(c.cil) + ' · ' + p + ' %</p>' +
+      (c.do ? '<p class="ps">do ' + (+c.do.slice(5, 7)) + '/' + c.do.slice(0, 4) + (c.cil > (c.nasporeno || 0) ? ' · chybí ' + kc(c.cil - (c.nasporeno || 0)) : '') + '</p>' : '') +
+      '<div class="cilakce"><input class="inp mini" inputmode="decimal" id="vk-' + c.id + '" placeholder="Kč" aria-label="Částka k připsání do ' + esc(c.nazev) + '"><button class="btn" data-act="cvklad" data-id="' + c.id + '">Vhodit</button></div>' +
+      (vk.length ? '<ul class="vklady">' + vk.map(v => '<li>' + datKratce(v.d) + ' <b>' + (v.kc > 0 ? '+' : '') + kc(v.kc) + '</b></li>').join('') + '</ul>' : '') +
+      '<div class="cilvz">' + VZHLEDY_CILE.map(([v, n]) => '<button class="tg ' + ((c.vzhled || 'sklenice') === v ? 'on' : '') + '" data-act="cvzhled" data-id="' + c.id + '" data-v="' + v + '">' + n + '</button>').join('') +
+      '<button class="del" data-act="cdel" data-id="' + c.id + '" aria-label="Smazat cíl ' + esc(c.nazev) + '">×</button></div></div></article>';
+  };
+  const L = '<h2 class="pt">Cíle</h2><p class="ps">Na co šetříš. Odloženou částku „vhoď“ do sklenice, teploměru nebo zdi.</p>' +
+    (cile.length ? cile.map(karta).join('') : '<p class="empty">Zatím žádný cíl.</p>') +
     '<h3 class="sub">Nový cíl</h3><div class="row"><label class="f">Název<input id="cn" placeholder="např. Dovolená v Itálii"></label><label class="f">Kolik, Kč<input id="cc" inputmode="numeric"></label><label class="f">Do kdy<input type="month" id="cd"></label></div>' +
-    '<div class="row"><label class="f">Druh<select id="ct"><option value="dovolena">Dovolená</option><option value="rezerva">Rezerva</option><option value="auto">Auto</option><option value="dum">Bydlení</option><option value="jine">Jiné</option></select></label><label class="f">Už mám našetřeno, Kč<input id="cs" inputmode="numeric" value="0"></label></div><button class="btn" data-act="cadd">Přidat cíl</button>';
+    '<div class="row"><label class="f">Druh<select id="ct"><option value="dovolena">Dovolená</option><option value="rezerva">Rezerva</option><option value="auto">Auto</option><option value="dum">Bydlení</option><option value="jine">Jiné</option></select></label>' +
+    '<label class="f">Kreslit jako<select id="cv">' + VZHLEDY_CILE.map(([v, n]) => '<option value="' + v + '">' + n + '</option>').join('') + '</select></label><label class="f">Už mám našetřeno, Kč<input id="cs" inputmode="numeric" value="0"></label></div><button class="btn" data-act="cadd">Přidat cíl</button>';
   const R = '<h3 class="sub" style="margin-top:4px">Úkoly · ' + ymLabel(ym).toLowerCase() + '</h3>' + (act.length ? act.map(u => taskHTML(S, U, u)).join('') : '<p class="empty">Všechno hotovo.</p>') +
     '<input id="un" class="line hand" placeholder="nový úkol – např. zavolat do pojišťovny" autocomplete="off" style="margin-top:12px"><div class="row" style="margin-top:10px"><label class="f">Termín (nepovinný)<input type="date" id="ut"></label></div><button class="btn" data-act="uadd">Přidat úkol</button>' +
     '<h3 class="sub">Splněno</h3>' + (done.length ? done.map(u => taskHTML(S, U, u)).join('') : '<p class="empty">Zatím nic odškrtnutého.</p>');
@@ -127,6 +141,31 @@ export function vOceneni(S) {
   return [L, R];
 }
 
+// ---------- Roční bilance ----------
+export function vRok(S, U) {
+  const now = dnes(), rok = +(U.rok || now.slice(0, 4)), data = rokVPuntikach(S, rok, now);
+  const inc = data.reduce((s, m) => s + m.inc, 0), exp = data.reduce((s, m) => s + m.exp, 0);
+  const ok = data.reduce((s, m) => s + m.dny.filter(d => d.st === 'ok').length, 0), nad = data.reduce((s, m) => s + m.dny.filter(d => d.st === 'nad').length, 0);
+  const plus = data.filter(m => m.inc > m.exp && m.inc > 0), best = data.filter(m => m.inc || m.exp).sort((a, b) => (b.inc - b.exp) - (a.inc - a.exp))[0];
+  const ks = katObdobi(S, rok + '-01', rok + '-12'), pecetiN = data.filter(m => m.pecet).length;
+  const mesic = m => {
+    const prvni = (pd(m.ym + '-01').getDay() + 6) % 7;
+    return '<div class="rm"><h4>' + MN[+m.ym.slice(5) - 1] + (m.pecet ? pecetMala() : '') + '</h4><div class="tecky">' + '<i class="nic skryta"></i>'.repeat(prvni) +
+      m.dny.map(d => '<i class="' + d.st + '" title="' + datKratce(d.d) + (d.st === 'nic' ? '' : ' · volné výdaje ' + kc(d.kc)) + '"></i>').join('') + '</div></div>';
+  };
+  const L = '<div class="phead"><button class="arw" data-act="rok" data-id="' + (rok - 1) + '" aria-label="Předchozí rok">‹</button><div><h2 class="pt">Roční bilance ' + rok + '</h2><p class="ps">Rok v puntících: každý den jedna tečka</p></div><button class="arw" data-act="rok" data-id="' + (rok + 1) + '" aria-label="Další rok">›</button></div>' +
+    '<p class="leg2"><i class="ok"></i> v denním limitu <i class="nad"></i> nad limitem <i class="nic"></i> bez zápisů nebo budoucnost' + ' · <span class="pec-l">' + pecetMala() + '</span> měsíc v plusu a v plánu</p>' +
+    '<div class="rokmrizka">' + data.map(mesic).join('') + '</div>' +
+    '<p class="note2">Počítají se jen volné výdaje (bez bydlení, předplatného a pravidelných plateb). Denní limit = plán měsíce bez pravidelných plateb rozdělený na dny; bez plánu průměr posledních 3 měsíců.</p>';
+  const R = '<h3 class="sub" style="margin-top:4px">Rok v číslech</h3><div class="kpis"><div class="kpi zel"><span class="kl">Příjmy</span><b>' + kc(inc) + '</b></div><div class="kpi cer"><span class="kl">Výdaje</span><b>' + kc(exp) + '</b></div><div class="kpi mod"><span class="kl">Zbylo</span><b>' + kc(inc - exp) + '</b></div></div>' +
+    '<dl class="kv"><dt>Dní v limitu</dt><dd>' + ok + ' z ' + (ok + nad) + (ok + nad ? ' (' + Math.round(ok / (ok + nad) * 100) + ' %)' : '') + '</dd><dt>Měsíců v plusu</dt><dd>' + plus.length + '</dd><dt>Zlatých pečetí</dt><dd>' + pecetiN + '</dd>' +
+    (best ? '<dt>Nejlepší měsíc</dt><dd>' + MN[+best.ym.slice(5) - 1] + ' (' + kc(best.inc - best.exp) + ')</dd>' : '') + '</dl>' +
+    '<h3 class="sub">Příjmy a výdaje po měsících</h3><div class="fig"><svg id="gsl" role="img" aria-label="Příjmy a výdaje po měsících roku"></svg></div>' +
+    '<h3 class="sub">Na co šlo nejvíc</h3>' + (ks.length ? '<div class="bars">' + ks.slice(0, 6).map(([kk, v]) => { const o = kat(S, kk); return '<div class="b"><span>' + esc(o.n) + '</span><div class="tr"><div class="fl" style="--c:' + o.c + ';width:' + Math.max(3, v / ks[0][1] * 100) + '%"></div></div><span class="v">' + kc(v) + '</span></div>'; }).join('') + '</div>' : '<p class="empty">V tomto roce zatím nic.</p>');
+  return [L, R];
+}
+const pecetMala = () => '<svg class="pecet-m" viewBox="-12 -12 24 24" aria-label="zlatá pečeť"><circle r="10.5" fill="#d9a520" stroke="#a87b0f" stroke-dasharray="2 1.2"/><path d="M-4 0l3 3 6-6" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>';
+
 // ---------- Vzhled a nastavení ----------
 export function vVzhled(S, U, ctx) {
   const n = S.nast, f = FONTS.find(x => x.id === n.font) || FONTS[0];
@@ -139,6 +178,7 @@ export function vVzhled(S, U, ctx) {
     '<h3 class="sub">Linky</h3>' + vyb(0, 'linky', LINKY, x => '<i class="sw-l lin-' + x.id + '"></i><small>' + x.n + '</small>') +
     '<h3 class="sub">Písmo</h3>' + vyb(0, 'font', FONTS, x => '<span class="fs" style="font-family:' + x.f + ';font-size:' + Math.min(x.s, 22) + 'px">Káva 65 Kč</span><small>' + x.n + '</small>') +
     '<h3 class="sub">Barva písma</h3>' + vyb(0, 'ink', INKS, x => '<i class="sw-i" style="--c:' + x.c[0] + '"></i><small>' + x.n + '</small>') +
+    '<h3 class="sub">Zvuky</h3><label class="f chk"><input type="checkbox" data-act="zvuk" ' + (n.zvuk ? 'checked' : '') + '> Ťuknutí razítka a cinknutí mince</label>' +
     '<div class="ukazka lined"><span class="hand">Tak takhle bude vypadat tvůj zápis: oběd s kolegy 289 Kč</span></div>' +
     '<h3 class="sub">Účet</h3>' + ctx.ucet + '<p class="note2">Finanční deník ' + VERZE + '</p>';
   return [L, R];
@@ -152,12 +192,14 @@ export function kronikaAkce(a, t, U, ctx) {
     case 'kslice': U.ksel = U.ksel === id ? '' : id; return true;
     case 'kpen': U.kpen = id; return true;
     case 'obd': U.obd = id; return true;
+    case 'rok': U.rok = id; return true;
+    case 'zvuk': zapis(['nast', 'zvuk'], t.checked); return true;
     case 'nast': zapis(['nast', t.dataset.k], id); if (t.dataset.k === 'rezim') { const r = REZIMY.find(x => x.id === id); if (r) ctx.toast('Režim: ' + r.n.replace('Režim ', '').replace(' režim', '') + '. Úvodní stránka a menu se přizpůsobily.'); } return true;
     case 'cadd': {
       const nazev = h('cn'), cil = num(h('cc'));
       if (!nazev) { $('#cn').focus(); return 'stop'; }
       if (!(cil > 0)) { $('#cc').focus(); return 'stop'; }
-      const c = { id: uid(), nazev, cil, nasporeno: Math.max(0, num(h('cs')) || 0), do: h('cd') ? h('cd') + '-28' : '', typ: $('#ct').value };
+      const zac = Math.max(0, num(h('cs')) || 0), c = { id: uid(), nazev, cil, nasporeno: zac, do: h('cd') ? h('cd') + '-28' : '', typ: $('#ct').value, vzhled: $('#cv').value, vklady: zac ? { v0: { d: dnes(), kc: zac } } : {} };
       zapis(['cile', c.id], c); return true;
     }
     case 'cvklad': {
@@ -165,10 +207,14 @@ export function kronikaAkce(a, t, U, ctx) {
       if (!c || !v) { const el = $('#vk-' + id); if (el) el.focus(); return 'stop'; }
       const nove = Math.max(0, (c.nasporeno || 0) + v);
       zapis(['cile', id, 'nasporeno'], nove);
+      const vid = uid(); zapis(['cile', id, 'vklady', vid], { d: dnes(), kc: v });
+      U.novyCil = id; setTimeout(() => { U.novyCil = ''; }, 1500);
+      if (ctx.zvuk) ctx.zvuk('mince');
       if (nove >= c.cil && (c.nasporeno || 0) < c.cil) ctx.toast('Cíl „' + c.nazev + '“ je splněný! Nová pečeť v Oceněních.');
       return true;
     }
     case 'cdel': zapis(['cile', id], null); return true;
+    case 'cvzhled': zapis(['cile', id, 'vzhled'], t.dataset.v); return true;
     default: return false;
   }
 }
