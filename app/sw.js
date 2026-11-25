@@ -1,9 +1,9 @@
-// Finanční deník · sw.js · v0.5.0
+// Finanční deník · sw.js · v0.6.0
 // Offline: stránka a skripty z mezipaměti, když není síť. Firebase si data drží sám.
 // Při každé nové verzi zvyš CACHE, jinak uživatelům zůstane stará verze.
-const CACHE = 'fd-0.5.0';
+const CACHE = 'fd-0.6.0';
 const SOUBORY = ['./', 'index.html', 'css/app.css', 'css/fonty.css', 'manifest.json', 'icons/icon.svg',
-  'js/app.js', 'js/util.js', 'js/logic.js', 'js/data.js', 'js/store.js', 'js/views.js', 'js/charts.js', 'js/config.js', 'js/cloud.js', 'js/hlas.js', 'js/blocek.js', 'js/zivot.js', 'js/zivot-data.js', 'js/kronika.js', 'js/sklenice.js', 'js/tracker.js'];
+  'js/app.js', 'js/util.js', 'js/logic.js', 'js/data.js', 'js/store.js', 'js/views.js', 'js/charts.js', 'js/config.js', 'js/cloud.js', 'js/hlas.js', 'js/blocek.js', 'js/zivot.js', 'js/zivot-data.js', 'js/kronika.js', 'js/sklenice.js', 'js/tracker.js', 'js/tyden.js', 'js/nalepky.js', 'js/kniha.js', 'js/tisk.js', 'js/uctenky.js'];
 
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SOUBORY)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {

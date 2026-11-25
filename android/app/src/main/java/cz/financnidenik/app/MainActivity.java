@@ -8,6 +8,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(DiktatPlugin.class); // diktování přes rozpoznávání řeči telefonu
+        registerPlugin(TiskPlugin.class);   // kronika do PDF přes systémový tisk
         super.onCreate(savedInstanceState);
     }
 }

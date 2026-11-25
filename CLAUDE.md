@@ -18,7 +18,7 @@ Deník ve FinanceFlow zůstává beze změny. Plán: dokument „Finanční den�
 - Vanilla JS, ES moduly, bez build kroku. PWA (manifest + `sw.js`).
 - Firebase Auth (Google, e-mail) + Realtime Database europe-west1. SDK 10.12.2 z gstatic, načítá se dynamicky
   jen při vyplněném `js/config.js`.
-- Data: `users/{uid}/{ucet|nast|kats|pen|e|notes|stk|pred|vozy|ukoly|osoby|zivot|cile|trackery|pravidelne}`. Zápisy **po položkách**
+- Data: `users/{uid}/{ucet|nast|kats|pen|e|notes|stk|pred|vozy|ukoly|osoby|zivot|cile|trackery|pravidelne|nalepky|tydny}`. Zápisy **po položkách**
   (`store.zapis(['e', id], objekt)`), nikdy celý deník.
 - **Pravidla:** zápis jen na úrovni sekcí, ne na `users/$uid` (kaskáda pravidel v RTDB by jinak povolila vše pod ní).
   `ucet` jde zapsat jen jednou a `trialDo` max. 31 dní dopředu.
@@ -34,6 +34,12 @@ Deník ve FinanceFlow zůstává beze změny. Plán: dokument „Finanční den�
   `pravidelne/{id}` {nazev, kc, den, kat, pen, od, aktivni}; zaplacená = zápis s `e.prav = id` v měsíci;
   `e.pocit` radost|nutnost|impulz (hodnotí jen uživatel). Rok v puntících počítá jen volné výdaje
   (bez byd/predpl a pravidelných) proti limitu dne (plán − pravidelné) ÷ dny.
+- **0.6:** `nalepky/{id}` {kde ('den/YYYY-MM-DD', 'mesic/YYYY-MM', 'tyden/pondělí', 'rok/YYYY', název stránky), s L|R,
+  druh (id nálepky | 'postit'), x (% šířky), y (px), r, v, text, c}; `tydny/{pondělí}` {pocasi, povedlo, prekvapilo, priste, hotovo};
+  `stk/{id}` navíc {pol, ai {celkem, kat, datum, jistota}}; `nast.zavrena` (zavřená kniha při startu).
+  Bílý výsek nálepek = SVG filtr `#fd-vyrez` v index.html. Otáčení listu: `kniha.js` (`listuj`), směr nastavuje `U.smer`.
+  Kronika do PDF: `tisk.js` sází do `#tisk` (@media print); Android tiskne přes vlastní plugin `TiskPlugin` (PrintManager).
+  AI účtenky: větší fotka (1100 px) jen v paměti, do RTDB jde 480 px; worker `/uctenka`, volitelný denní limit (KV `LIMITY`).
 - Ocenění se počítají z dat (`oceneni()` v logic.js), nic se neukládá a nic se nebere zpět.
 - Zvýraznění v zápisku se ukládá jako `{{y|text}}` (y/p/g/b/o), nikdy jako HTML.
 - **Android:** Capacitor 8 (`android/`, appId `cz.financnidenik.app`, webDir `app`). Widget `ZapisWidget`
@@ -46,7 +52,7 @@ Deník ve FinanceFlow zůstává beze změny. Plán: dokument „Finanční den�
   udalost, etapa (do), poznamka, lekar (lekar, duvod, prepis, img, vysv, pristi), ockovani (latka, proti, davka, sarze),
   zub (zub = číslo FDI, akce vypadl/prorezal), rust (vyska, vaha). Fotka zprávy 800 px JPEG 0,6 (limit 320 000 znaků).
   Appka zdraví nehodnotí ani nedoporučuje; AI jen vysvětluje text zprávy (worker/worker.js, prompt to hlídá).
-- AI worker `worker/worker.js` (Cloudflare): POST /vysvetli, ověřuje Firebase ID token přes accounts:lookup,
+- AI worker `worker/worker.js` (Cloudflare): POST /vysvetli a /uctenka, ověřuje Firebase ID token přes accounts:lookup,
   nic neukládá. Adresa v `js/config.js` → `AI_WORKER`.
 - Google přihlášení v Android appce: popup ve WebView nefunguje → později plugin @capacitor-firebase/authentication.
 
@@ -56,6 +62,7 @@ Deník ve FinanceFlow zůstává beze změny. Plán: dokument „Finanční den�
 3. Nasazení: nejdřív `firebase deploy --only database` (když se měnila pravidla), pak hosting.
 
 ## Verze
+- **0.6.0** (25. 11. 2026) – zavřená kniha a otáčení listů, nálepky a lepicí lístky, týdenní list s nedělním rituálem, kronika do PDF, AI čtení účtenek, tlačítko Vrátit.
 - **0.5.0** (25. 11. 2026) – spořicí sklenice/teploměr/zeď, tracker pro sebe i děti, pravidelné platby s razítkem, razítko SPLNĚNO, emoce u výdajů, roční bilance v puntících, zvuky.
 - **0.4.0** (25. 11. 2026) – finanční kronika: kožené desky s menu, Přehled s akvarelovými grafy, Pokladní kniha, Grafy a statistiky, Cíle, Ocenění, nový Vzhled (režimy, desky, stůl, papír, linky, písmo, barva písma), oprava linek.
 - **0.3.0** (24. 11. 2026) – Kniha života: osoby, osa a mapa života, lékařský archiv s AI vysvětlením, očkovací průkaz, zoubky, růst.
@@ -65,7 +72,6 @@ Deník ve FinanceFlow zůstává beze změny. Plán: dokument „Finanční den�
 
 ## Známé limity a TODO
 - Zkušební doba se zakládá v prohlížeči (pravidla hlídají max. 31 dní). Po zavedení plateb ověřovat ve workeru.
-- AI čtení účtenek (worker) – fáze 5. Teď se částka z fotky doplní ručně.
 - Převody mezi peněženkami zatím nejsou.
-- Týdenní list, Dlužníček, obálky, teploměr cíle, narozeniny, nákupní seznam – fáze 3–4.
+- Dlužníček, obálky, teploměr cíle, narozeniny, nákupní seznam – fáze 3–4.
 - Stripe a placení – fáze 5. Propojení s FinanceFlow – fáze 6.

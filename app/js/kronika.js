@@ -1,4 +1,4 @@
-// Finanční deník · kronika.js · v0.5.0
+// Finanční deník · kronika.js · v0.6.0
 // Stránky „finanční kroniky“: Přehled, Pokladní kniha, Grafy a statistiky, Cíle a úkoly, Ocenění, Vzhled a nastavení.
 
 import { esc, kc, nf, num, pd, mk, dim, dnes, uid, vals, MN, MG, ymLabel, datKratce, VERZE } from './util.js';
@@ -7,6 +7,7 @@ import { souhrnMesice, posunYm, stavKDatu, oceneni, katObdobi, sumT, monthE, rok
 import { st, zapis } from './store.js';
 import { kat, taskHTML } from './views.js';
 import { kresliCil, VZHLEDY_CILE } from './sklenice.js';
+import { ritualCeka } from './tyden.js';
 
 const $ = s => document.querySelector(s);
 const pct = z => (z == null ? '' : '<span class="zm ' + (z > 0 ? 'nah' : z < 0 ? 'dol' : '') + '">' + (z > 0 ? '↑ +' : z < 0 ? '↓ ' : '') + z + ' %</span>');
@@ -58,7 +59,9 @@ export function vPrehled(S, U) {
   const cile = vals(S.cile).sort((a, b) => (a.do || '9').localeCompare(b.do || '9')).slice(0, 3);
   const dnesUk = vals(S.ukoly).filter(u => !u.hotovo && u.mesic <= mk(now)).sort((a, b) => (a.termin || '9').localeCompare(b.termin || '9')).slice(0, 4);
   const posl = oceneni(S, now).filter(o => o.kdy).sort((a, b) => b.kdy.localeCompare(a.kdy))[0];
-  const R = '<h3 class="sub" style="margin-top:4px">Kategorie výdajů</h3>' + (tot ? '<div class="kolac"><div class="fig kf"><svg id="gkol" role="img" aria-label="Výdaje podle kategorií"></svg></div><ul class="legenda">' +
+  const rit = ritualCeka(S, now);
+  const R = (rit ? '<a href="#tyden" class="lepik ruzovy ritual" data-act="gotyden" data-id="' + rit + '"><h4>Nedělní rituál</h4><p>Pět minut ohlédnutí za týdnem. Otevřít týdenní list →</p></a>' : '') +
+    '<h3 class="sub" style="margin-top:4px">Kategorie výdajů</h3>' + (tot ? '<div class="kolac"><div class="fig kf"><svg id="gkol" role="img" aria-label="Výdaje podle kategorií"></svg></div><ul class="legenda">' +
     ks.map(([k, v]) => { const o = kat(S, k); return '<li data-act="kslice" data-id="' + k + '" class="' + (U.ksel === k ? 'on' : '') + '"><i style="--c:' + o.c + '"></i>' + esc(o.n) + '<b>' + Math.round(v / tot * 100) + ' %</b></li>'; }).join('') + '</ul></div>' : '<p class="empty">V tomto měsíci zatím žádné výdaje.</p>') +
     '<div class="dvoj"><div><h3 class="sub">Moje cíle <a href="#cile" class="mini-l">+ Nový cíl</a></h3>' + (cile.length ? cile.map(cilHTML).join('') : '<p class="empty">Žádný cíl. <a href="#cile">Přidat první</a></p>') + '</div>' +
     '<div><div class="lepik zluty"><h4>Úkoly (' + dnesUk.length + ')</h4>' + (dnesUk.length ? dnesUk.map(u => '<label class="lu"><input type="checkbox" data-act="tdone" data-id="' + u.id + '">' + esc(u.text) + '</label>').join('') : '<p>Všechno hotovo.</p>') + '</div>' +
@@ -178,7 +181,9 @@ export function vVzhled(S, U, ctx) {
     '<h3 class="sub">Linky</h3>' + vyb(0, 'linky', LINKY, x => '<i class="sw-l lin-' + x.id + '"></i><small>' + x.n + '</small>') +
     '<h3 class="sub">Písmo</h3>' + vyb(0, 'font', FONTS, x => '<span class="fs" style="font-family:' + x.f + ';font-size:' + Math.min(x.s, 22) + 'px">Káva 65 Kč</span><small>' + x.n + '</small>') +
     '<h3 class="sub">Barva písma</h3>' + vyb(0, 'ink', INKS, x => '<i class="sw-i" style="--c:' + x.c[0] + '"></i><small>' + x.n + '</small>') +
-    '<h3 class="sub">Zvuky</h3><label class="f chk"><input type="checkbox" data-act="zvuk" ' + (n.zvuk ? 'checked' : '') + '> Ťuknutí razítka a cinknutí mince</label>' +
+    '<h3 class="sub">Kniha</h3><label class="f chk"><input type="checkbox" data-act="nastb" data-k="zavrena" ' + (n.zavrena !== false ? 'checked' : '') + '> Při spuštění ukázat zavřenou knihu</label>' +
+    '<label class="f chk"><input type="checkbox" data-act="zvuk" ' + (n.zvuk ? 'checked' : '') + '> Zvuky: šustění listů, razítko, cinknutí mince</label>' +
+    '<p class="note2">Listovat můžeš i prstem (tah doleva/doprava) nebo šipkami na klávesnici.</p>' +
     '<div class="ukazka lined"><span class="hand">Tak takhle bude vypadat tvůj zápis: oběd s kolegy 289 Kč</span></div>' +
     '<h3 class="sub">Účet</h3>' + ctx.ucet + '<p class="note2">Finanční deník ' + VERZE + '</p>';
   return [L, R];
@@ -194,6 +199,8 @@ export function kronikaAkce(a, t, U, ctx) {
     case 'obd': U.obd = id; return true;
     case 'rok': U.rok = id; return true;
     case 'zvuk': zapis(['nast', 'zvuk'], t.checked); return true;
+    case 'gotyden': U.tyden = id; return false;
+    case 'nastb': zapis(['nast', t.dataset.k], t.checked); return true;
     case 'nast': zapis(['nast', t.dataset.k], id); if (t.dataset.k === 'rezim') { const r = REZIMY.find(x => x.id === id); if (r) ctx.toast('Režim: ' + r.n.replace('Režim ', '').replace(' režim', '') + '. Úvodní stránka a menu se přizpůsobily.'); } return true;
     case 'cadd': {
       const nazev = h('cn'), cil = num(h('cc'));

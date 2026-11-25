@@ -1,6 +1,6 @@
 // Finanční deník · testy čisté logiky · spuštění: node tests/logic.test.mjs
 import assert from 'node:assert/strict';
-import { parse, tankStats, tachOk, hledej, zustatek, deser, plain, mesice, souhrnMesice, stavKDatu, oceneni, posunYm, katObdobi, trackerStat, pravidelneMesic, pocitStat, rokVPuntikach, limitDne } from '../app/js/logic.js';
+import { parse, tankStats, tachOk, hledej, zustatek, deser, plain, mesice, souhrnMesice, stavKDatu, oceneni, posunYm, katObdobi, trackerStat, pravidelneMesic, pocitStat, rokVPuntikach, limitDne, pondeli, tydenStat, cisloTydne } from '../app/js/logic.js';
 import { prazdny, ukazka } from '../app/js/data.js';
 import { vek, nazevZubu, oblouk, stavZubu } from '../app/js/zivot-data.js';
 
@@ -137,5 +137,25 @@ t('rok v puntících a denní limit', () => {
   assert.deepEqual(nov.dny.slice(0, 4).map(d => d.st), ['ok', 'ok', 'nad', 'nic'], 'nájem se nepočítá, budoucnost je prázdná');
   assert.equal(r[0].dny[0].st, 'nic');
   assert.equal(rokVPuntikach(S, 2026, '2026-12-15')[10].pecet, true);
+});
+t('týdenní list: pondělí, číslo týdne, souhrn', () => {
+  assert.equal(pondeli('2026-11-25'), '2026-11-23'); assert.equal(pondeli('2026-11-29'), '2026-11-23'); assert.equal(pondeli('2026-11-23'), '2026-11-23');
+  assert.equal(pondeli('2027-01-01'), '2026-12-28', 'přes rok');
+  assert.equal(cisloTydne('2026-11-23'), 48); assert.equal(cisloTydne('2026-12-28'), 53); assert.equal(cisloTydne('2027-01-04'), 1);
+  const S = prazdny();
+  S.pred['2026-11'] = { prijem: 30000, vydaje: 3000 };
+  S.e = { a: { id: 'a', d: '2026-11-23', typ: 'v', kc: 50, kat: 'jidlo', pocit: 'radost', tagy: [] }, b: { id: 'b', d: '2026-11-24', typ: 'v', kc: 400, kat: 'zab', tagy: [] },
+    c: { id: 'c', d: '2026-11-17', typ: 'v', kc: 900, kat: 'jidlo', tagy: [] }, d: { id: 'd', d: '2026-11-25', typ: 'p', kc: 1000, kat: 'prij', tagy: [] } };
+  S.notes['2026-11-26'] = 'pohoda';
+  const w = tydenStat(S, '2026-11-23', '2026-11-25');
+  assert.equal(w.vyd, 450); assert.equal(w.prij, 1000); assert.equal(w.minule, 900); assert.equal(w.maMinule, true);
+  assert.deepEqual(w.dny.map(x => x.st), ['ok', 'nad', 'ok', 'nic', 'nic', 'nic', 'nic'], 'limit 100 Kč/den, budoucnost prázdná');
+  assert.equal(w.vLimitu, 2); assert.equal(w.ubehlo, 3); assert.equal(w.nejvetsi.id, 'b'); assert.equal(w.pocit.radost, 50); assert.equal(w.zapsanoDni, 4);
+  assert.equal(w.ne, '2026-11-29');
+});
+t('ukázka má nálepky a uzavřený týden', () => {
+  const S = ukazka();
+  assert.ok(Object.values(S.nalepky).some(n => n.druh === 'postit' && n.text));
+  assert.ok(Object.values(S.tydny).some(x => x.hotovo && x.priste));
 });
 console.log(`\n${ok} testů prošlo`);

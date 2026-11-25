@@ -25,6 +25,7 @@
       <nav class="menu" id="menu" aria-label="Stránky deníku"></nav>
       <p class="motto">Malé kroky,<br>velké výsledky.</p>
       <span class="stav" id="stav"></span>
+      <button class="zavrit-btn" data-act="zavrit">Zavřít knihu</button>
     </aside>
     <main class="book" id="book">
       <section class="page L" id="pL"></section><section class="page R" id="pR"></section>
@@ -33,7 +34,20 @@
       </div>
     </main>
   </div>
+  <button class="nal-btn" data-act="nalarch" aria-label="Nálepky a lepicí lístky" title="Nálepky a lístky"><svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><path d="M6 5h20v14l-7 8H6z" fill="#fff08a" stroke="#c9a227" stroke-width="1.6" stroke-linejoin="round"/><path d="M26 19h-7v8" fill="#f1d75a" stroke="#c9a227" stroke-width="1.6" stroke-linejoin="round"/><path d="M15.5 9l1.6 3.4 3.7.5-2.7 2.6.7 3.7-3.3-1.8-3.3 1.8.7-3.7-2.7-2.6 3.7-.5z" fill="#e8505b"/></svg></button>
 </div>
+<div id="zavrena" class="zavrena" hidden></div>
+<div id="arch" class="arch" role="dialog" aria-modal="true" aria-labelledby="archT" hidden></div>
+<div id="tisk" class="tisk" aria-hidden="true"></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <filter id="fd-vyrez" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">
+    <feMorphology in="SourceAlpha" operator="dilate" radius="3.2" result="obrys"/>
+    <feFlood flood-color="#fff"/><feComposite in2="obrys" operator="in" result="bila"/>
+    <feGaussianBlur in="obrys" stdDeviation="1.4" result="rozm"/><feOffset in="rozm" dx="0.6" dy="1.8" result="pos"/>
+    <feFlood flood-color="#000" flood-opacity=".32"/><feComposite in2="pos" operator="in" result="stin"/>
+    <feMerge><feMergeNode in="stin"/><feMergeNode in="bila"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+</defs></svg>
 <div id="blocek" class="blocek" role="dialog" aria-modal="true" aria-labelledby="bt" hidden></div>
 <p id="toast" class="toast" role="status" hidden></p>
 <noscript><p style="padding:24px;color:#fff">Finanční deník potřebuje zapnutý JavaScript.</p></noscript>

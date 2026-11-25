@@ -1,13 +1,19 @@
 # Finanční deník
 
 Zápisník na peníze, který se počítá sám. Samostatná appka vycházející z Deníku ve FinanceFlow.
-Verze **0.5.0** (25. 11. 2026).
+Verze **0.6.0** (25. 11. 2026).
 
 ## Co umí v0.1
 
 - Kniha v kožených deskách s menu, rejstříkem a čísly stran. Vzhled si člověk skládá sám: 4 režimy knihy
   (zápisník, pokladní kniha, analytický, rodinný), 6 desek, 4 stoly, 7 barev papíru, 6 druhů linek, 7 písem, 8 barev písma.
 - **Přehled:** příjmy/výdaje/zůstatek, budík plánu, shrnutí měsíce na lepíku, akvarelové grafy (sloupce, koláč), cíle, úkoly, ocenění.
+- **Kniha na stole:** při spuštění zavřené kožené desky s gumičkou, otáčení listů s animací (a volitelně šustěním), listování prstem nebo šipkami.
+- **Nálepky a lepicí lístky:** čtyři archy nálepek (Základní, Peníze, Domov a cesty, Rodina a svátky) a barevné lístky s vlastním textem; nalepíš je kamkoli a posuneš prstem.
+- **Týdenní list a nedělní rituál:** týden po dnech, souhrn, počasí týdne, tři otázky a „tento týden si hlídám“.
+- **Kronika do PDF:** měsíc nebo rok jako vysázaný sešit (titulní strana, čísla, grafy, kategorie, cíle, rituály, ocenění, den po dni).
+- **AI čtení účtenek:** po vlepení fotky AI doplní obchod, částku, kategorii, položky a datum (worker `/uctenka`).
+- **Vrátit:** smazaný zápis, účtenku nebo nálepku jde hned vrátit.
 - **Cíle** kreslené jako sklenice s mincemi, teploměr nebo cihlová zeď; vklady s historií.
 - **Tracker** návyků pro sebe i pro děti (ano/ne nebo počet), kalendář políček, série, graf po měsících.
 - **Pravidelné platby** tužkou, po zaplacení inkoust a razítko ZAPLACENO; razítko SPLNĚNO u úkolů; volitelné zvuky.
@@ -101,6 +107,11 @@ firebase.json        hosting + pravidla
   css/fonty.css      písma uložená v appce (fonts/, licence OFL) – fungují offline
   js/sklenice.js     kreslené cíle (sklenice, teploměr, cihlová zeď)
   js/tracker.js      tracker návyků
+  js/tyden.js        týdenní list a nedělní rituál
+  js/nalepky.js      nálepky a lepicí lístky
+  js/kniha.js        zavřená kniha, otáčení listů, listování
+  js/tisk.js         kronika do PDF
+  js/uctenky.js      fotky účtenek a AI čtení
   js/zivot.js        Kniha života (stránky a akce)
   js/zivot-data.js   Kniha života – věk, zuby FDI, ukázková data
   js/blocek.js       trhací bloček (rychlý zápis), otevírá ho widget a zkratky

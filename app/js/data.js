@@ -1,7 +1,7 @@
-// Finanční deník · data.js · v0.5.0
+// Finanční deník · data.js · v0.6.0
 // Vzhledy, písma, výchozí kategorie, prázdný deník a ukázkový měsíc.
 
-import { iso, addD, mk, p2, uid } from './util.js';
+import { iso, pd, addD, mk, p2, uid } from './util.js';
 import { ukazkaZivota } from './zivot-data.js';
 
 // ---- Vzhled knihy (každá volba zvlášť) ----
@@ -69,7 +69,7 @@ export const KATS = [
   ['vypl', 'Výplata', '#2e7d32', 'p'], ['prij', 'Ostatní příjem', '#558b2f', 'p'],
 ].map((k, i) => ({ id: k[0], n: k[1], c: k[2], t: k[3], ord: i, vych: true }));
 export const PEN = { ucet: { id: 'ucet', n: 'Bankovní účet', start: 0 }, hot: { id: 'hot', n: 'Hotovost', start: 0 } };
-export const NAST = { desky: 'hneda', stul: 'dub', papir: 'kremova', linky: 'linky', font: 'caveat', ink: 'namornicka', rezim: 'analyticky', zvuk: false };
+export const NAST = { desky: 'hneda', stul: 'dub', papir: 'kremova', linky: 'linky', font: 'caveat', ink: 'namornicka', rezim: 'analyticky', zvuk: false, zavrena: true };
 export const TRIAL_DNI = 30;
 
 const byId = arr => Object.fromEntries(arr.map(x => [x.id, x]));
@@ -79,7 +79,7 @@ export function prazdny() {
   const now = Date.now();
   return {
     nast: { ...NAST }, kats: byId(KATS.map(k => ({ ...k }))), pen: JSON.parse(JSON.stringify(PEN)),
-    e: {}, notes: {}, stk: {}, pred: {}, vozy: {}, ukoly: {}, osoby: {}, zivot: {}, cile: {}, trackery: {}, pravidelne: {},
+    e: {}, notes: {}, stk: {}, pred: {}, vozy: {}, ukoly: {}, osoby: {}, zivot: {}, cile: {}, trackery: {}, pravidelne: {}, nalepky: {}, tydny: {},
     ucet: { vytvoreno: now, trialDo: now + TRIAL_DNI * 864e5 },
   };
 }
@@ -164,6 +164,14 @@ export function ukazka() {
   const prevYm = mk(addD(first, -1));
   [['Zaplatit pojištění auta', dd(Math.min(25, 28)), false, ym], ['Objednat STK na motorku', '', false, prevYm], ['Vrátit Petrovi 500 Kč', '', true, ym], ['Zrušit nepoužívané předplatné', '', false, ym]]
     .forEach(([text, termin, hotovo, mesic]) => { const id = uid(); S.ukoly[id] = { id, text, termin, hotovo, mesic }; });
+  // Nálepky a lístek na dnešní stránce, nedělní rituál za minulý týden
+  const nal = (kde, s, druh, x, y, r, o) => { const id = uid(); S.nalepky[id] = { id, kde, s, druh, x, y, r, v: 1, ...(o || {}) }; };
+  nal('den/' + today, 'L', 'hvezda', 84, 500, 12);
+  nal('den/' + today, 'R', 'postit', 74, 540, -3, { c: 'zluty', text: 'Pojištění auta do pátku!' });
+  nal('mesic/' + ym, 'L', 'prasatko', 88, 110, -8);
+  nal('prehled/' + ym, 'R', 'n_super', 82, 70, 8);
+  const dt0 = new Date(), poDnes = addD(today, -((dt0.getDay() + 6) % 7)), poMin = addD(poDnes, -7);
+  S.tydny[poMin] = { pocasi: 'polojasno', povedlo: 'Celý týden jsem vařil doma, žádné obědy venku.', prekvapilo: 'Kolik dělá káva cestou do práce.', priste: 'Kávu si brát z domu v termosce.', hotovo: pd(addD(poMin, 6)).getTime() + 20 * 36e5 };
   Object.assign(S, ukazkaZivota());
   return S;
 }

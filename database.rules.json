@@ -26,6 +26,9 @@
           "$id": {
             "img": {
               ".validate": "newData.isString() && newData.val().length < 150000"
+            },
+            "obchod": {
+              ".validate": "newData.isString() && newData.val().length < 200"
             }
           }
         },
@@ -77,6 +80,31 @@
         },
         "pravidelne": {
           ".write": "auth != null && auth.uid === $uid"
+        },
+        "nalepky": {
+          ".write": "auth != null && auth.uid === $uid",
+          "$id": {
+            ".validate": "newData.hasChildren(['id', 'kde', 'druh'])",
+            "text": {
+              ".validate": "newData.isString() && newData.val().length < 500"
+            },
+            "x": {
+              ".validate": "newData.isNumber()"
+            },
+            "y": {
+              ".validate": "newData.isNumber()"
+            }
+          }
+        },
+        "tydny": {
+          ".write": "auth != null && auth.uid === $uid",
+          "$po": {
+            ".validate": "$po.matches(/^\\d{4}-\\d{2}-\\d{2}$/)",
+            "povedlo": { ".validate": "newData.isString() && newData.val().length < 2000" },
+            "prekvapilo": { ".validate": "newData.isString() && newData.val().length < 2000" },
+            "priste": { ".validate": "newData.isString() && newData.val().length < 2000" },
+            "hotovo": { ".validate": "newData.isNumber()" }
+          }
         },
         "$jine": {
           ".validate": false
