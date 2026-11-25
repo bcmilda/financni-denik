@@ -1,4 +1,4 @@
-// Finanční deník · charts.js · v0.4.0
+// Finanční deník · charts.js · v0.5.0
 // Grafy „kreslené perem“: každá čára se kreslí dvakrát s drobným chvěním (vlastní obdoba rough.js).
 
 import { pd, mk, dim, dnes, kc, nf } from './util.js';

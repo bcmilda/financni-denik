@@ -1,4 +1,4 @@
-// Finanční deník · store.js · v0.4.0
+// Finanční deník · store.js · v0.5.0
 // Jediné místo, kde se mění data. Dva režimy:
 //   local – bez účtu, vše v localStorage (ukázka / vyzkoušení)
 //   cloud – Firebase RTDB users/{uid}/…, každá změna se zapisuje po položkách

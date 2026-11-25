@@ -1,4 +1,4 @@
-// Finanční deník · cloud.js · v0.4.0
+// Finanční deník · cloud.js · v0.5.0
 // Firebase (Auth + Realtime Database). Načítá se jen když je vyplněný js/config.js.
 
 const V = '10.12.2';

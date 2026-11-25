@@ -1,4 +1,4 @@
-// Finanční deník · logic.js · v0.4.0
+// Finanční deník · logic.js · v0.5.0
 // Čistá logika bez DOM: rozpoznání zápisu, tankování, součty, hledání.
 // Testy: tests/logic.test.mjs (node tests/logic.test.mjs)
 
@@ -161,4 +161,69 @@ export function oceneni(S, dnesD) {
   if (vals(S.zivot).length >= 10) g.kronikar = dnesD;
   if (e.length && (new Date(dnesD) - new Date(e[0].d)) / 864e5 >= 365) g.rok = dnesD;
   return OCENENI.map(o => ({ ...o, kdy: g[o.id] || null }));
+}
+
+// ---------- v0.5: tracker, pravidelné platby, emoce, rok v puntících ----------
+const addDen = (s, n) => { const d = new Date(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10) + n); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+// Tracker: dny = { 'YYYY-MM-DD': počet }. Série = dny po sobě s výskytem (končící dnes nebo včera).
+export function trackerStat(t, dnesD) {
+  const dny = Object.keys(t.dny || {}).filter(d => (t.dny[d] || 0) > 0).sort();
+  let serie = 0, d = (t.dny || {})[dnesD] > 0 ? dnesD : addDen(dnesD, -1);
+  while ((t.dny || {})[d] > 0) { serie++; d = addDen(d, -1); }
+  let max = 0, cur = 0, prev = null;
+  dny.forEach(x => { cur = prev && addDen(prev, 1) === x ? cur + 1 : 1; max = Math.max(max, cur); prev = x; });
+  const posl = dny[dny.length - 1] || null;
+  const mes = {};
+  dny.forEach(x => { mes[x.slice(0, 7)] = (mes[x.slice(0, 7)] || 0) + t.dny[x]; });
+  const pred = posl ? Math.round((new Date(dnesD) - new Date(posl)) / 864e5) : null;
+  return { serie, nejdelsi: max, posledni: posl, predDny: pred, mesice: mes, celkem: dny.reduce((s, x) => s + t.dny[x], 0), dnu: dny.length };
+}
+// Pravidelné platby měsíce: každá s informací, jestli už je zaplacená (zápis s e.prav === id v tom měsíci)
+export function pravidelneMesic(S, ym) {
+  const l = monthE(S, ym);
+  return vals(S.pravidelne).filter(p => p.aktivni !== false && (!p.od || p.od <= ym))
+    .map(p => ({ p, zapl: l.find(e => e.prav === p.id) || null }))
+    .sort((a, b) => (a.p.den || 1) - (b.p.den || 1));
+}
+// Emoce u výdajů: kolik peněz šlo na radost, nutnosti a impulzy (jen z označených výdajů)
+export function pocitStat(S, ym) {
+  const l = monthE(S, ym).filter(e => e.typ === 'v' && e.pocit);
+  const s = { radost: 0, nutnost: 0, impulz: 0 };
+  l.forEach(e => { if (s[e.pocit] != null) s[e.pocit] += e.kc; });
+  const tot = s.radost + s.nutnost + s.impulz;
+  return { ...s, tot, pocet: l.length, pct: k => (tot ? Math.round(s[k] / tot * 100) : 0) };
+}
+// Rok v puntících: denní „volné“ výdaje (bez bydlení, předplatného a pravidelných plateb) proti dennímu limitu.
+// Limit dne = (plán měsíce − pravidelné a fixní) ÷ dny, bez plánu průměr volných výdajů posledních 3 měsíců.
+const FIXNI = ['byd', 'predpl'];
+const volny = e => e.typ === 'v' && !e.prav && !FIXNI.includes(e.kat);
+export function limitDne(S, ym) {
+  const N = new Date(+ym.slice(0, 4), +ym.slice(5, 7), 0).getDate(), pr = (S.pred || {})[ym];
+  if (pr) {
+    const fix = pravidelneMesic(S, ym).reduce((s, x) => s + (x.p.kc || 0), 0);
+    return Math.max(1, (pr.vydaje - fix) / N);
+  }
+  let sum = 0, dni = 0;
+  for (let i = 1; i <= 3; i++) {
+    const m = posunYm(ym, -i), l = monthE(S, m).filter(volny);
+    if (l.length) { sum += l.reduce((s, e) => s + e.kc, 0); dni += new Date(+m.slice(0, 4), +m.slice(5, 7), 0).getDate(); }
+  }
+  return dni ? sum / dni : null;
+}
+export function rokVPuntikach(S, rok, dnesD) {
+  const out = [];
+  for (let m = 1; m <= 12; m++) {
+    const ym = rok + '-' + String(m).padStart(2, '0'), N = new Date(rok, m, 0).getDate(), lim = limitDne(S, ym), l = monthE(S, ym);
+    const zap = l.length > 0, den = {};
+    l.filter(volny).forEach(e => { den[e.d] = (den[e.d] || 0) + e.kc; });
+    const dny = [];
+    for (let d = 1; d <= N; d++) {
+      const iso = ym + '-' + String(d).padStart(2, '0');
+      if (iso > dnesD || !zap || lim == null) dny.push({ d: iso, st: 'nic' });
+      else dny.push({ d: iso, st: (den[iso] || 0) <= lim ? 'ok' : 'nad', kc: den[iso] || 0 });
+    }
+    const inc = sumT(l, 'p'), exp = sumT(l, 'v'), pr = (S.pred || {})[ym], hotovy = ym < dnesD.slice(0, 7);
+    out.push({ ym, dny, inc, exp, lim, pecet: hotovy && zap && inc > exp && (!pr || exp <= pr.vydaje) });
+  }
+  return out;
 }

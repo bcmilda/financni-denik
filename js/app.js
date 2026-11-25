@@ -1,4 +1,4 @@
-// Finanční deník · app.js · v0.4.0
+// Finanční deník · app.js · v0.5.0
 // Start, přihlášení, vykreslení stránek a všechny akce uživatele.
 
 import { VERZE, iso, pd, addD, mk, dnes, esc, kc, nf, num, uid, vals } from './util.js';
@@ -7,7 +7,8 @@ import { parse, tachOk, hledej, deser } from './logic.js';
 import { st, startLocal, resetLocal, startCloud as storeCloud, zCloudu, zapis } from './store.js';
 import { vDen, vMesic, vTank, vUkoly, vKat, vHledat } from './views.js';
 import { grafMesic, grafTank, grafRada, grafSloupce, grafKolac, grafBudik } from './charts.js';
-import { vPrehled, vPokladni, vGrafy, vCile, vOceneni, vVzhled, kronikaAkce, grafyObdobi } from './kronika.js';
+import { vPrehled, vPokladni, vGrafy, vCile, vOceneni, vVzhled, vRok, kronikaAkce, grafyObdobi } from './kronika.js';
+import { vTracker, trackerAkce } from './tracker.js';
 import { mesice, souhrnMesice, katObdobi, posunYm } from './logic.js';
 import { FIREBASE } from './config.js';
 import { diktuj, hlasDostupny, hlasChyba } from './hlas.js';
@@ -15,7 +16,7 @@ import { initBlocek, otevritBlocek, toast } from './blocek.js';
 import { vZivot, zivotAkce, bindZivot, rustData } from './zivot.js';
 
 const $ = s => document.querySelector(s);
-const VIEWS = { prehled: vPrehled, den: vDen, pokladni: vPokladni, mesic: vMesic, grafy: vGrafy, cile: vCile, oceneni: vOceneni, zivot: vZivot, tankovani: vTank, kategorie: vKat, hledat: vHledat,
+const VIEWS = { prehled: vPrehled, den: vDen, pokladni: vPokladni, mesic: vMesic, grafy: vGrafy, cile: vCile, tracker: vTracker, oceneni: vOceneni, rok: vRok, zivot: vZivot, tankovani: vTank, kategorie: vKat, hledat: vHledat,
   vzhled: (S, U) => vVzhled(S, U, { ucet: ucetHTML() }), ukoly: vCile };
 // Menu v kožených deskách: [stránka, název, ikonka]
 const MENU = [
@@ -25,6 +26,8 @@ const MENU = [
   ['mesic', 'Měsíc a plán', '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>'],
   ['grafy', 'Grafy a statistiky', '<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>'],
   ['cile', 'Cíle a úkoly', '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".8"/>'],
+  ['tracker', 'Tracker', '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12l3 3 5-6"/>'],
+  ['rok', 'Roční bilance', '<circle cx="7" cy="7" r="1.4"/><circle cx="12" cy="7" r="1.4"/><circle cx="17" cy="7" r="1.4"/><circle cx="7" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="17" cy="12" r="1.4"/><circle cx="7" cy="17" r="1.4"/><circle cx="12" cy="17" r="1.4"/>'],
   ['oceneni', 'Ocenění', '<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8"/>'],
   ['zivot', 'Kniha života', '<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>'],
   ['tankovani', 'Tankování', '<path d="M5 20V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v15M4 20h11M7 8h5M14 9h2a2 2 0 0 1 2 2v5a1.5 1.5 0 0 0 3 0V8l-3-3"/>'],
@@ -78,7 +81,7 @@ function render() {
 function kresli() {
   const m = $('#mch'); if (m) grafMesic(m, S(), mk(U.day));
   const ym = mk(U.day), n = U.view === 'grafy' ? grafyObdobi(U) : 1;
-  const gsl = $('#gsl'); if (gsl) grafSloupce(gsl, mesice(S(), ym, U.view === 'grafy' ? Math.max(6, n) : 6));
+  const gsl = $('#gsl'); if (gsl) grafSloupce(gsl, U.view === 'rok' ? mesice(S(), (U.rok || dnes().slice(0, 4)) + '-12', 12) : mesice(S(), ym, U.view === 'grafy' ? Math.max(6, n) : 6));
   const gk = $('#gkol');
   if (gk) {
     const ks = katObdobi(S(), posunYm(ym, -(n - 1)), ym), tot = ks.reduce((x, k) => x + k[1], 0), sel = ks.find(k => k[0] === U.ksel);
@@ -115,6 +118,26 @@ function ucetHTML() {
     : '<p class="note2" style="margin-top:0">Režim bez účtu: zápisy jsou jen v tomto prohlížeči.</p>' + (FIREBASE.apiKey ? '<button class="btn" data-act="showlogin">Přihlásit se</button> ' : '') +
       '<button class="btn ghost" data-act="reset" data-id="demo">Obnovit ukázku</button> <button class="btn ghost" data-act="reset" data-id="">Prázdný deník</button>';
   return ucet;
+}
+
+// ---------- zvuky (volitelné, Vzhled a nastavení → Zvuky) ----------
+let ac = null;
+function zvuk(druh) {
+  if (!S() || !S().nast.zvuk) return;
+  try {
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    const t0 = ac.currentTime, g = ac.createGain(); g.connect(ac.destination);
+    if (druh === 'mince') {
+      [1760, 2350].forEach((f, i) => { const o = ac.createOscillator(), gg = ac.createGain(); o.type = 'sine'; o.frequency.value = f; gg.gain.setValueAtTime(0.0001, t0 + i * 0.07); gg.gain.exponentialRampToValueAtTime(0.18, t0 + i * 0.07 + 0.01); gg.gain.exponentialRampToValueAtTime(0.0001, t0 + i * 0.07 + 0.35); o.connect(gg); gg.connect(ac.destination); o.start(t0 + i * 0.07); o.stop(t0 + i * 0.07 + 0.4); });
+    } else {
+      // razítko: tlumené ťuknutí (klesající tón + krátký šum)
+      const o = ac.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(140, t0); o.frequency.exponentialRampToValueAtTime(45, t0 + 0.12);
+      g.gain.setValueAtTime(0.5, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.16); o.connect(g); o.start(t0); o.stop(t0 + 0.18);
+      const b = ac.createBuffer(1, ac.sampleRate * 0.05, ac.sampleRate), ch = b.getChannelData(0);
+      for (let i = 0; i < ch.length; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / ch.length) * 0.35;
+      const n = ac.createBufferSource(); n.buffer = b; n.connect(ac.destination); n.start(t0);
+    }
+  } catch (err) { /* bez zvuku */ }
 }
 
 // ---------- stránka dne ----------
@@ -283,7 +306,26 @@ document.addEventListener('click', ev => {
     case 'vadd': { const n = $('#vn').value.trim(); if (!n) { $('#vn').focus(); return; } const v = { id: uid(), n, typ: $('#vt').value }; zapis(['vozy', v.id], v); U.voz = v.id; break; }
     case 'vdel': zapis(['vozy', id], null); U.voz = ''; break;
     case 'uadd': { const n = $('#un').value.trim(); if (!n) { $('#un').focus(); return; } const u = { id: uid(), text: n, termin: $('#ut').value || '', hotovo: false, mesic: mk(U.day) }; zapis(['ukoly', u.id], u); break; }
-    case 'tdone': { const u = D.ukoly[id]; if (!u) return; zapis(['ukoly', id], { ...u, hotovo: t.checked, mesic: t.checked ? mk(U.day) : u.mesic }); break; }
+    case 'tdone': {
+      const u = D.ukoly[id]; if (!u) return;
+      zapis(['ukoly', id], { ...u, hotovo: t.checked, mesic: t.checked ? mk(U.day) : u.mesic });
+      if (t.checked) { U.novyUkol = id; zvuk('razitko'); setTimeout(() => { U.novyUkol = ''; }, 1200); }
+      break;
+    }
+    case 'pocit': { const e = D.e[id]; if (!e) return; zapis(['e', id, 'pocit'], e.pocit === t.dataset.v ? null : t.dataset.v); break; }
+    case 'pzapl': {
+      const p = (D.pravidelne || {})[id]; if (!p) return;
+      const ym = mk(U.day), N = new Date(+ym.slice(0, 4), +ym.slice(5), 0).getDate(), d = mk(dnes()) === ym ? dnes() : ym + '-' + String(Math.min(p.den || 1, N)).padStart(2, '0');
+      const e = { id: uid(), d, ts: Date.now(), typ: 'v', kc: p.kc, text: p.nazev, kat: p.kat || 'ost', pen: p.pen || 'ucet', tagy: [], prav: p.id };
+      zapis(['e', e.id], e); zvuk('razitko'); break;
+    }
+    case 'pravadd': {
+      const n = $('#prn').value.trim(), k = num($('#prk').value), den = Math.max(1, Math.min(31, parseInt($('#prd').value, 10) || 1));
+      if (!n) { $('#prn').focus(); return; } if (!(k > 0)) { $('#prk').focus(); return; }
+      const p = { id: uid(), nazev: n, kc: k, den, kat: $('#prc').value, pen: $('#prp').value, od: mk(U.day) };
+      zapis(['pravidelne', p.id], p); break;
+    }
+    case 'pravdel': zapis(['pravidelne', id, 'aktivni'], false); break;
     case 'tdel': zapis(['ukoly', id], null); break;
     case 'kadd': { const n = $('#kn').value.trim(); if (!n) { $('#kn').focus(); return; } const k = { id: uid(), n, c: $('#kc').value, t: $('#kt').value, ord: 100 + vals(D.kats).length }; zapis(['kats', k.id], k); break; }
     case 'kdel': zapis(['kats', id], null); break;
@@ -294,7 +336,7 @@ document.addEventListener('click', ev => {
     case 'reset': resetLocal(id === 'demo'); break;
     case 'logout': if (api) api.odhlasit(); return;
     case 'showlogin': ukazLogin(); return;
-    default: { let r = zivotAkce(a, t, U, { render, toast }); if (!r) r = kronikaAkce(a, t, U, { render, toast }); if (!r || r === 'stop') return; }
+    default: { const c = { render, toast, zvuk }; let r = zivotAkce(a, t, U, c); if (!r) r = kronikaAkce(a, t, U, c); if (!r) r = trackerAkce(a, t, U, c); if (!r || r === 'stop') return; }
   }
   saveUI(); render();
 });
