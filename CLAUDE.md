@@ -62,6 +62,7 @@ Deník ve FinanceFlow zůstává beze změny. Plán: dokument „Finanční den�
 3. Nasazení: nejdřív `firebase deploy --only database` (když se měnila pravidla), pak hosting.
 
 ## Verze
+- **0.6.1** (27. 11. 2026) – oprava: tlačítka „Pokračovat s Googlem“ a „Vyzkoušet bez účtu“ na přihlašovací obrazovce nereagovala.
 - **0.6.0** (25. 11. 2026) – zavřená kniha a otáčení listů, nálepky a lepicí lístky, týdenní list s nedělním rituálem, kronika do PDF, AI čtení účtenek, tlačítko Vrátit.
 - **0.5.0** (25. 11. 2026) – spořicí sklenice/teploměr/zeď, tracker pro sebe i děti, pravidelné platby s razítkem, razítko SPLNĚNO, emoce u výdajů, roční bilance v puntících, zvuky.
 - **0.4.0** (25. 11. 2026) – finanční kronika: kožené desky s menu, Přehled s akvarelovými grafy, Pokladní kniha, Grafy a statistiky, Cíle, Ocenění, nový Vzhled (režimy, desky, stůl, papír, linky, písmo, barva písma), oprava linek.
