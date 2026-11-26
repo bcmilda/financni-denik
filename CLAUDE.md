@@ -16,7 +16,7 @@ Deník ve FinanceFlow zůstává beze změny. Plán: dokument „Finanční den�
 
 ## Technika
 - Vanilla JS, ES moduly, bez build kroku. PWA (manifest + `sw.js`).
-- Firebase Auth (Google, e-mail) + Realtime Database europe-west1. SDK 10.12.2 z gstatic, načítá se dynamicky
+- Firebase projekt `financni-denik-dd6d3` (Spark, zdarma). Auth (Google, e-mail) + Realtime Database europe-west1. SDK 10.12.2 z gstatic, načítá se dynamicky
   jen při vyplněném `js/config.js`.
 - Data: `users/{uid}/{ucet|nast|kats|pen|e|notes|stk|pred|vozy|ukoly|osoby|zivot|cile|trackery|pravidelne|nalepky|tydny}`. Zápisy **po položkách**
   (`store.zapis(['e', id], objekt)`), nikdy celý deník.

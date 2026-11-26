@@ -4,11 +4,11 @@
 // Dokud je apiKey prázdný, appka běží v režimu bez účtu (data jen v prohlížeči).
 
 export const FIREBASE = {
-  apiKey: '',
-  authDomain: '',
-  databaseURL: '',
-  projectId: '',
-  appId: '',
+  apiKey: 'AIzaSyClWlC1oZXtZiRDSjw-1zw4Ri_567GBiLo',
+  authDomain: 'financni-denik-dd6d3.firebaseapp.com',
+  databaseURL: 'https://financni-denik-dd6d3-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'financni-denik-dd6d3',
+  appId: '1:690028686362:web:bfdfb7a2c99be445f2f5a3',
 };
 
 // Adresa AI workeru pro vysvětlení lékařských zpráv (worker/worker.js), např.
