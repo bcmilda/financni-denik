@@ -1,7 +1,7 @@
 // Finanční deník · util.js · v0.6.0
 // Drobné pomocné funkce bez vazby na stránku (testují se v Node).
 
-export const VERZE = '0.6.0';
+export const VERZE = '0.6.1';
 export const p2 = n => String(n).padStart(2, '0');
 export const iso = d => d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
 export const pd = s => { const a = String(s).split('-').map(Number); return new Date(a[0], a[1] - 1, a[2] || 1); };

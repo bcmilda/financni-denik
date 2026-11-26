@@ -1,4 +1,4 @@
-// Finanční deník · app.js · v0.6.0
+// Finanční deník · app.js · v0.6.1
 // Start, přihlášení, vykreslení stránek a všechny akce uživatele.
 
 import { VERZE, iso, pd, addD, mk, dnes, esc, kc, nf, num, uid, vals } from './util.js';
@@ -415,14 +415,15 @@ function ukazLogin(msg) {
   const el = $('#login');
   el.hidden = false; $('#app').hidden = true;
   el.innerHTML = '<div class="cover"><h1 class="brand">Finanční deník</h1><p class="lead">Zápisník na peníze, který se počítá sám. První měsíc zdarma, bez platební karty.</p>' +
-    (api ? '<button class="btn wide" data-l="google">Pokračovat s Googlem</button><p class="or">nebo e-mailem</p>' +
+    (api ? '<button type="button" class="btn wide" data-l="google">Pokračovat s Googlem</button><p class="or">nebo e-mailem</p>' +
       '<form id="lf" novalidate><label class="f">E-mail<input id="le" type="email" autocomplete="email" required></label><label class="f">Heslo<input id="lh" type="password" autocomplete="current-password" minlength="6" required></label>' +
       '<div class="lrow"><button class="btn" data-l="login" type="submit">Přihlásit</button><button class="btn ghost" data-l="reg" type="button">Založit účet</button></div></form>' +
-      '<button class="linkbtn" data-l="reset">Zapomenuté heslo</button>' : '') +
-    '<p class="lmsg" id="lmsg" role="status">' + esc(msg || '') + '</p><button class="linkbtn" data-l="demo">Vyzkoušet bez účtu</button></div>';
+      '<button type="button" class="linkbtn" data-l="reset">Zapomenuté heslo</button>' : '') +
+    '<p class="lmsg" id="lmsg" role="status">' + esc(msg || '') + '</p><button type="button" class="linkbtn" data-l="demo">Vyzkoušet bez účtu</button></div>';
 }
 document.addEventListener('submit', ev => { if (ev.target.id === 'lf') { ev.preventDefault(); prihlas('login'); } });
-document.addEventListener('click', ev => { const b = ev.target.closest('[data-l]'); if (b && b.type !== 'submit') prihlas(b.dataset.l); });
+// Pozor: <button> bez type má výchozí type 'submit' – proto se ptáme na atribut, ne na vlastnost
+document.addEventListener('click', ev => { const b = ev.target.closest('[data-l]'); if (b && b.getAttribute('type') !== 'submit') prihlas(b.dataset.l); });
 async function prihlas(co) {
   const msg = $('#lmsg'), em = $('#le') ? $('#le').value.trim() : '', he = $('#lh') ? $('#lh').value : '';
   if (co === 'demo') { if (api && user) await api.odhlasit(); startLocal(true); spust(); return; }
