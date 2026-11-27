@@ -1,4 +1,4 @@
-// Finanční deník · cloud.js · v0.6.0
+// Finanční deník · cloud.js · v0.7.0
 // Firebase (Auth + Realtime Database). Načítá se jen když je vyplněný js/config.js.
 
 const V = '10.12.2';
@@ -15,8 +15,10 @@ const CHYBY = {
   'auth/too-many-requests': 'Moc pokusů. Zkus to za chvíli.',
   'auth/popup-closed-by-user': 'Přihlašovací okno se zavřelo.',
   'auth/network-request-failed': 'Nejde se připojit k internetu.',
+  'vyprselo': 'Přihlašování trvalo moc dlouho. Zkus to znovu.',
+  'nesedi': 'Přihlášení se nepodařilo ověřit. Zkus to znovu.',
 };
-export const chyba = e => CHYBY[e && e.code] || 'Něco se nepovedlo (' + ((e && e.code) || 'neznámá chyba') + ').';
+export const chyba = e => CHYBY[e && (e.code || e.message)] || 'Něco se nepovedlo (' + ((e && e.code) || 'neznámá chyba') + ').';
 
 export async function startCloud(config, onUser) {
   const [{ initializeApp }, A, D] = await Promise.all([import(SDK('app')), import(SDK('auth')), import(SDK('database'))]);
@@ -27,6 +29,8 @@ export async function startCloud(config, onUser) {
   let unsub = null;
   const api = {
     google: () => A.signInWithPopup(auth, new A.GoogleAuthProvider()),
+    // Android appka: Google token přinesený z přihlašovací stránky v prohlížeči (viz googleapp.js)
+    googleToken: (idToken, accessToken) => A.signInWithCredential(auth, A.GoogleAuthProvider.credential(idToken, accessToken)),
     login: (email, heslo) => A.signInWithEmailAndPassword(auth, email, heslo),
     registrace: (email, heslo) => A.createUserWithEmailAndPassword(auth, email, heslo),
     reset: email => A.sendPasswordResetEmail(auth, email),

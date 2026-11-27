@@ -1,4 +1,4 @@
-// Finanční deník · logic.js · v0.6.0
+// Finanční deník · logic.js · v0.7.0
 // Čistá logika bez DOM: rozpoznání zápisu, tankování, součty, hledání.
 // Testy: tests/logic.test.mjs (node tests/logic.test.mjs)
 
@@ -72,7 +72,8 @@ export const monthE = (S, ym) => vals(S.e).filter(e => mk(e.d) === ym);
 export function zustatek(S, penId) {
   const p = (S.pen || {})[penId];
   if (!p) return 0;
-  return (p.start || 0) + vals(S.e).filter(e => (e.pen || 'ucet') === penId).reduce((s, e) => s + (e.typ === 'p' ? e.kc : -e.kc), 0);
+  const prev = vals(S.prevody || {}).reduce((s, t) => s + (t.na === penId ? t.kc : 0) - (t.z === penId ? t.kc : 0), 0);
+  return (p.start || 0) + prev + vals(S.e).filter(e => (e.pen || 'ucet') === penId).reduce((s, e) => s + (e.typ === 'p' ? e.kc : -e.kc), 0);
 }
 
 // Zápisek: {{y|text}} = zvýrazněný text (y/p/g/b/o = barva zvýrazňovače)
@@ -258,4 +259,54 @@ export function cisloTydne(po) {
   const d = new Date(Date.UTC(+po.slice(0, 4), +po.slice(5, 7) - 1, +po.slice(8, 10) + 3));
   const r = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
   return 1 + Math.round(((d - r) / 864e5 - 3 + (r.getUTCDay() + 6) % 7) / 7);
+}
+
+// ---------- v0.7: dlužníček, obálky, narozeniny ----------
+// Stav dluhu: kolik je splaceno a kolik zbývá
+export function dluhStav(dl) {
+  const splaceno = Math.min(dl.kc, vals(dl.splatky || {}).reduce((s, x) => s + (+x.kc || 0), 0));
+  const hotovo = !!dl.vraceno || splaceno >= dl.kc - 0.001;
+  return { splaceno, zbyva: hotovo ? 0 : Math.round((dl.kc - splaceno) * 100) / 100, hotovo };
+}
+// Souhrn po lidech: kolik kdo dluží mně (+) a kolik já jemu (−), jen otevřené dluhy
+export function dluhyPoLidech(S) {
+  const o = {};
+  vals(S.dluhy || {}).forEach(dl => {
+    const st = dluhStav(dl); if (st.hotovo) return;
+    const k = dl.kdo.trim().toLowerCase(), r = o[k] || (o[k] = { kdo: dl.kdo.trim(), mne: 0, ja: 0 });
+    if (dl.smer === 'ja') r.ja += st.zbyva; else r.mne += st.zbyva;
+  });
+  return Object.values(o).map(r => ({ ...r, cisty: r.mne - r.ja })).sort((a, b) => Math.abs(b.cisty) - Math.abs(a.cisty));
+}
+// Obálky v měsíci: utraceno z kategorií obálky; kategorie bez obálky zvlášť
+export function obalkyMesic(S, ym) {
+  const vyd = vals(S.e).filter(e => e.typ === 'v' && mk(e.d) === ym);
+  const ob = vals(S.obalky || {}).sort((a, b) => (a.ord || 0) - (b.ord || 0));
+  const vObalce = new Set(ob.flatMap(o => Object.keys(o.kats || {})));
+  const radky = ob.map(o => {
+    const utraceno = vyd.filter(e => (o.kats || {})[e.kat]).reduce((s, e) => s + e.kc, 0);
+    return { o, utraceno, zbyva: o.kc - utraceno, pct: o.kc > 0 ? Math.min(100, Math.round(utraceno / o.kc * 100)) : 0 };
+  });
+  const mimo = vyd.filter(e => !vObalce.has(e.kat)).reduce((s, e) => s + e.kc, 0);
+  return { radky, rozdeleno: ob.reduce((s, o) => s + (+o.kc || 0), 0), mimo };
+}
+// Nejbližší narozeniny od data dnesD: datum 'YYYY-MM-DD' nebo '--MM-DD' (rok neznámý)
+export function dalsiNarozeniny(datum, dnesD) {
+  const m = String(datum || '').match(/^(\d{4}|-)-?(\d{2})-(\d{2})$/); if (!m) return null;
+  const rok0 = m[1] === '-' ? null : +m[1], mm = +m[2], dd = +m[3];
+  let r = +dnesD.slice(0, 4);
+  const dt = y => { const last = new Date(y, mm, 0).getDate(); return y + '-' + String(mm).padStart(2, '0') + '-' + String(Math.min(dd, last)).padStart(2, '0'); }; // 29. 2. → 28. 2.
+  if (dt(r) < dnesD) r++;
+  const d = dt(r), za = Math.round((Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)) - Date.UTC(+dnesD.slice(0, 4), +dnesD.slice(5, 7) - 1, +dnesD.slice(8, 10))) / 864e5);
+  return { d, za, vek: rok0 ? r - rok0 : null };
+}
+// Všechny narozeniny: vlastní záznamy + osoby z Knihy života s datem narození
+export function narozeninySeznam(S, dnesD) {
+  const n = S.narozeniny || {}, out = [];
+  vals(n).filter(x => !x.osoba).forEach(x => { const nx = dalsiNarozeniny(x.datum, dnesD); if (nx) out.push({ id: x.id, jmeno: x.jmeno, datum: x.datum, z: x, ...nx }); });
+  vals(S.osoby || {}).filter(o => o.narozeni).forEach(o => {
+    const id = 'o-' + o.id, nx = dalsiNarozeniny(o.narozeni, dnesD);
+    if (nx) out.push({ id, jmeno: o.jmeno, datum: o.narozeni, osoba: o.id, z: n[id] || { id, osoba: o.id }, ...nx });
+  });
+  return out.sort((a, b) => a.za - b.za || a.jmeno.localeCompare(b.jmeno, 'cs'));
 }

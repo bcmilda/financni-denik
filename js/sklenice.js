@@ -1,4 +1,4 @@
-// Finanční deník · sklenice.js · v0.6.0
+// Finanční deník · sklenice.js · v0.7.0
 // Kreslené cíle: zavařovací sklenice s mincemi a bankovkami, teploměr, cihlová zeď.
 // Vrací SVG jako text (bez DOM), velikost řídí viewBox.
 

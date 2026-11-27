@@ -1,4 +1,4 @@
-// Finanční deník · zivot.js · v0.6.0
+// Finanční deník · zivot.js · v0.7.0
 // Kniha života: osoby, osa života, mapa života (etapy a události), lékařský archiv s vysvětlením,
 // očkovací průkaz, zoubky a růst. Levá strana = osa života, pravá = vybraná část.
 

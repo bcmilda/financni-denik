@@ -1,4 +1,4 @@
-// Finanční deník · tyden.js · v0.6.0
+// Finanční deník · tyden.js · v0.7.0
 // Týdenní list (pondělí–neděle) a nedělní rituál: pět minut ohlédnutí za týdnem.
 // Data: tydny/{pondělí YYYY-MM-DD} = { pocasi, povedlo, prekvapilo, priste, hotovo (ms) }
 

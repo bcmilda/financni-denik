@@ -1,4 +1,4 @@
-// Finanční deník · tisk.js · v0.6.0
+// Finanční deník · tisk.js · v0.7.0
 // Kronika do PDF: měsíc nebo rok jako hezky vysázaný sešit. Na webu přes tisk prohlížeče („Uložit jako PDF“),
 // v Android appce přes vlastní plugin Tisk (systémový PrintManager).
 

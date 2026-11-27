@@ -1,4 +1,4 @@
-// Finanční deník · nalepky.js · v0.6.0
+// Finanční deník · nalepky.js · v0.7.0
 // Nálepky a lepicí lístky (post-it), které se dají nalepit kamkoli do knihy a posouvat prstem.
 // Data: nalepky/{id} = { id, kde ('den/2026-11-25', 'mesic/2026-11', …), s ('L'|'R'), druh ('postit' | id nálepky),
 //        x (% šířky stránky), y (px od horního okraje stránky), r (otočení °), v (velikost 0.7–1.6), text, c (barva lístku) }

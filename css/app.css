@@ -1,4 +1,4 @@
-/* Finanční deník · app.css · v0.6.0 */
+/* Finanční deník · app.css · v0.7.0 */
 /* VOICE osobní, klidný: kniha finančního života, ne dashboard
    IDEA kožený zápisník na stole – desky s menu, krémové stránky, inkoust, lepíky, pečeti, akvarelové grafy
    PICTURE otevřená kniha; na Přehledu kreslené grafy přímo na papíře
@@ -679,3 +679,60 @@ label.f.rit textarea{font-family:var(--hand);font-size:var(--hs);color:var(--ink
 }
 @media (max-width:1000px){.zavrit-btn{display:none}.nal-btn{right:14px;bottom:14px;width:52px;height:52px}}
 @media (max-width:600px){.tden-r{grid-template-columns:2.8em minmax(0,1fr) auto;gap:8px}.pcs span{font-size:11px}.arch-mriz{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* ---------- v0.7: převody, dlužníček, obálky, narozeniny, nákupní seznam ---------- */
+.ent.prevod .t{color:var(--muted)}
+.ent.prevod .a{color:var(--muted);font-weight:500}
+.dluh{position:relative;padding:10px 0 12px;border-bottom:1px dashed var(--line)}
+.dluh-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.dluh-h b{font-size:calc(var(--hs) + 2px);color:var(--ink)}
+.dluh-k{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dluh-m{margin:2px 0 6px;font-size:13.5px;color:var(--muted)}
+.dluh-m .hand{font-size:calc(var(--hs) - 2px);color:var(--ink)}
+.dluh-a{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.dluh-a .inp.mini{width:6.5em}
+.dluh-a .btn{min-height:40px;padding:6px 12px}
+.dluh.hotovo{opacity:.75}
+.dluh.hotovo .dluh-k{text-decoration:line-through;text-decoration-thickness:1.5px}
+.dluh .razitko-ok.vraceno{position:absolute;right:44px;bottom:16px;font-size:13px;color:#1f6fb2;border-color:#1f6fb2}
+.dluh>.del{position:absolute;right:0;top:28px}
+.obalky{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px 12px;margin:6px 0 14px}
+.obalka{display:grid;justify-items:center;text-align:center;gap:1px}
+.obalka-svg{width:120px;height:auto;filter:drop-shadow(0 6px 6px rgba(0,0,0,.18))}
+.obalka b.hand{font-size:calc(var(--hs) + 2px);color:var(--ink);line-height:1.1}
+.obalka span{font-size:14px}
+.obalka small{font-size:12.5px;color:var(--muted)}
+.obalka .nad{color:#c0612b}
+.obkats{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:4px 12px;margin-bottom:10px}
+.obkats label{display:flex;align-items:center;gap:6px;font-size:14.5px;min-height:36px}
+.obkats input{width:20px;height:20px;flex:none}
+.obkats small{color:var(--muted)}
+.obkats input:disabled+i{opacity:.4}
+.narozky{position:relative;display:grid;grid-template-columns:3.4em minmax(0,1fr) auto;gap:12px;align-items:start;padding:10px 0;border-bottom:1px dashed var(--line)}
+.narozky.brzy .nar-d{background:#ffe1ea;color:#8a2c4a}
+.nar-d{display:grid;justify-items:center;border-radius:10px;padding:6px 2px;background:color-mix(in srgb,var(--acc) 10%,transparent);line-height:1.1;color-scheme:light}
+.nar-d b{font:700 22px/1 var(--hand)}
+.nar-d span{font-size:11.5px}
+.nar-t>b{font-size:calc(var(--hs) + 2px);color:var(--ink);line-height:1.1}
+.nar-t .vek{display:inline-block;min-width:1.6em;text-align:center;font:700 13px/1.6 'Inter',sans-serif;background:#f2b632;color:#3a2a05;border-radius:999px;padding:0 6px;vertical-align:3px}
+.nar-t small{display:block;font-size:13px;color:var(--muted)}
+.nar-n{margin:6px 0 4px}
+.nar-n input{font-family:var(--hand);font-size:calc(var(--hs) - 2px);color:var(--ink)}
+.nar-a{display:flex;gap:6px;flex-wrap:wrap}
+.nar-a .inp.mini{width:9.5em}
+.nar-a .btn{min-height:40px;padding:6px 12px}
+.nar-ok{display:flex;align-items:center;gap:10px;margin:4px 0 0;font-size:13.5px;color:var(--muted)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.nar-rok{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 12px}
+.nar-rok>div{border-top:1.5px solid var(--line);padding-top:4px;min-height:3.2em}
+.nar-rok b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.nar-rok span{display:block;font-size:calc(var(--hs) - 3px);line-height:1.15;color:var(--ink)}
+.lepik.modry{background:linear-gradient(180deg,#d6ecff,#c2e1fb)}
+.lepik.modry p{color:#24384a;margin:2px 0}
+.nakup{list-style:none;margin:12px 0 6px;padding:0}
+.nakup li{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:var(--lh)}
+.nakup label{display:flex;align-items:center;gap:10px;flex:1;cursor:pointer;min-height:40px}
+.nakup input{width:22px;height:22px;flex:none;accent-color:var(--acc)}
+.nakup .hand{font-size:var(--hs);color:var(--ink);line-height:1.1}
+.nakup li.done .hand{text-decoration:line-through;text-decoration-thickness:2px;text-decoration-color:color-mix(in srgb,var(--ink) 70%,transparent);opacity:.6}
+@media (max-width:600px){.obalky{grid-template-columns:repeat(2,minmax(0,1fr))}.obalka-svg{width:104px}.nar-rok{grid-template-columns:repeat(2,minmax(0,1fr))}}

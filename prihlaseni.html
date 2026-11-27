@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<!-- Finanční deník · prihlaseni.html · v0.7.0
+     Přihlášení Googlem pro Android appku. Otevírá se v systémovém prohlížeči (Google nedovolí přihlášení ve WebView),
+     token zašifruje jednorázovým klíčem z adresy (#k=…) a vrátí ho do appky odkazem financnidenik://prihlaseni. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>Přihlášení – Finanční deník</title>
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/fonty.css">
+<style>
+  :root{--cover:#5b3620}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;background:#3b2a1d radial-gradient(circle at 30% 20%,#6b4a30,#2a1d13);font:16px/1.5 'Inter',system-ui,sans-serif;color:#2b2a33}
+  .cover{width:min(420px,100%);background:var(--cover);color:#f6eedd;border-radius:10px 18px 18px 10px;padding:36px 30px 30px 40px;box-shadow:inset 14px 0 0 rgba(0,0,0,.18),0 30px 60px -30px rgba(0,0,0,.7)}
+  h1{font:700 40px/1.1 'Caveat',cursive;margin:0 0 8px}
+  p{margin:0 0 18px;opacity:.92}
+  .btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:52px;border:0;border-radius:12px;background:#fffdf8;color:#2b2a33;font:600 17px 'Inter',sans-serif;cursor:pointer;text-decoration:none}
+  .btn:focus-visible{outline:3px solid #f3e3bf;outline-offset:3px}
+  .btn[disabled]{opacity:.6;cursor:default}
+  .msg{min-height:1.5em;margin-top:14px;font-size:15px}
+  .ok{font:600 22px 'Caveat',cursive}
+</style>
+</head>
+<body>
+<main class="cover">
+  <h1>Finanční deník</h1>
+  <p id="txt">Přihlášení do appky v telefonu. Klepni a vyber svůj Google účet.</p>
+  <button class="btn" id="go" type="button" disabled>
+    <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+    Pokračovat s Googlem
+  </button>
+  <p class="msg" id="msg" role="status"></p>
+</main>
+<script type="module">
+import { FIREBASE } from './js/config.js';
+import { zasifrovat } from './js/googleapp.js';
+const V = '10.12.2', SDK = n => `https://www.gstatic.com/firebasejs/${V}/firebase-${n}.js`;
+const $ = s => document.querySelector(s), msg = t => { $('#msg').textContent = t; };
+const p = new URLSearchParams(location.hash.slice(1));
+let ss = null; try { ss = JSON.parse(sessionStorage.getItem('fd-gl') || 'null'); } catch { /* nic */ }
+sessionStorage.removeItem('fd-gl');
+const k = p.get('k') || (ss && ss.k), n = p.get('n') || (ss && ss.n);
+// Klíč z adresy hned schovat, ať nezůstane v historii prohlížeče
+history.replaceState(null, '', location.pathname);
+
+async function hotovo(res, A, auth) {
+  const c = A.GoogleAuthProvider.credentialFromResult(res);
+  if (!c || !c.idToken) throw { code: 'zadny_token' };
+  const odkaz = await zasifrovat(k, n, { idToken: c.idToken, accessToken: c.accessToken || null });
+  await A.signOut(auth).catch(() => {}); // v prohlížeči nezůstat přihlášený
+  $('#txt').innerHTML = '<span class="ok">Hotovo, vracím tě do appky…</span>';
+  const b = $('#go'); b.disabled = false; b.textContent = 'Vrátit se do appky'; b.dataset.odkaz = odkaz; b.onclick = () => { location.href = odkaz; };
+  msg('Kdyby se appka sama neotevřela, klepni na tlačítko.');
+  location.href = odkaz;
+}
+
+if (!k || !n) {
+  msg('Tuhle stránku otevírá appka Finanční deník. Přihlas se prosím z appky.');
+} else {
+  try {
+    const [{ initializeApp }, A] = await Promise.all([import(SDK('app')), import(SDK('auth'))]);
+    const auth = A.getAuth(initializeApp(FIREBASE)); auth.languageCode = 'cs';
+    const prov = new A.GoogleAuthProvider(); prov.setCustomParameters({ prompt: 'select_account' });
+    // Návrat po přesměrování (záložní cesta, když prohlížeč nepustí okno)
+    const r = await A.getRedirectResult(auth).catch(() => null);
+    if (r) await hotovo(r, A, auth);
+    else {
+      const b = $('#go'); b.disabled = false;
+      b.onclick = async () => {
+        b.disabled = true; msg('Chvilku…');
+        try { await hotovo(await A.signInWithPopup(auth, prov), A, auth); }
+        catch (e) {
+          if (e && (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment')) {
+            sessionStorage.setItem('fd-gl', JSON.stringify({ k, n })); await A.signInWithRedirect(auth, prov); return;
+          }
+          b.disabled = false;
+          msg(e && e.code === 'auth/popup-closed-by-user' ? 'Okno se zavřelo. Zkus to znovu.' : 'Přihlášení se nepovedlo (' + ((e && e.code) || 'chyba') + ').');
+        }
+      };
+    }
+  } catch (e) { msg('Přihlášení se nenačetlo. Jsi připojený k internetu?'); }
+}
+</script>
+</body>
+</html>

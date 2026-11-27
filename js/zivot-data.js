@@ -1,4 +1,4 @@
-// Finanční deník · zivot-data.js · v0.6.0
+// Finanční deník · zivot-data.js · v0.7.0
 // Kniha života – čistá data a výpočty bez DOM (testy v tests/logic.test.mjs).
 // Data: users/{uid}/osoby/{id} a users/{uid}/zivot/{id} (jeden záznam = jedna událost v životě osoby).
 
