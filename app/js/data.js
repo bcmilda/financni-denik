@@ -1,4 +1,4 @@
-// Finanční deník · data.js · v0.6.0
+// Finanční deník · data.js · v0.7.0
 // Vzhledy, písma, výchozí kategorie, prázdný deník a ukázkový měsíc.
 
 import { iso, pd, addD, mk, p2, uid } from './util.js';
@@ -79,7 +79,7 @@ export function prazdny() {
   const now = Date.now();
   return {
     nast: { ...NAST }, kats: byId(KATS.map(k => ({ ...k }))), pen: JSON.parse(JSON.stringify(PEN)),
-    e: {}, notes: {}, stk: {}, pred: {}, vozy: {}, ukoly: {}, osoby: {}, zivot: {}, cile: {}, trackery: {}, pravidelne: {}, nalepky: {}, tydny: {},
+    e: {}, notes: {}, stk: {}, pred: {}, vozy: {}, ukoly: {}, osoby: {}, zivot: {}, cile: {}, trackery: {}, pravidelne: {}, nalepky: {}, tydny: {}, prevody: {}, dluhy: {}, obalky: {}, narozeniny: {}, nakup: {},
     ucet: { vytvoreno: now, trialDo: now + TRIAL_DNI * 864e5 },
   };
 }
@@ -166,12 +166,24 @@ export function ukazka() {
     .forEach(([text, termin, hotovo, mesic]) => { const id = uid(); S.ukoly[id] = { id, text, termin, hotovo, mesic }; });
   // Nálepky a lístek na dnešní stránce, nedělní rituál za minulý týden
   const nal = (kde, s, druh, x, y, r, o) => { const id = uid(); S.nalepky[id] = { id, kde, s, druh, x, y, r, v: 1, ...(o || {}) }; };
-  nal('den/' + today, 'L', 'hvezda', 84, 500, 12);
-  nal('den/' + today, 'R', 'postit', 74, 540, -3, { c: 'zluty', text: 'Pojištění auta do pátku!' });
+  nal('den/' + today, 'L', 'hvezda', 88, 120, 12);
+  nal('den/' + today, 'R', 'postit', 76, 790, -3, { c: 'zluty', text: 'Pojištění auta do pátku!' });
   nal('mesic/' + ym, 'L', 'prasatko', 88, 110, -8);
   nal('prehled/' + ym, 'R', 'n_super', 82, 70, 8);
   const dt0 = new Date(), poDnes = addD(today, -((dt0.getDay() + 6) % 7)), poMin = addD(poDnes, -7);
   S.tydny[poMin] = { pocasi: 'polojasno', povedlo: 'Celý týden jsem vařil doma, žádné obědy venku.', prekvapilo: 'Kolik dělá káva cestou do práce.', priste: 'Kávu si brát z domu v termosce.', hotovo: pd(addD(poMin, 6)).getTime() + 20 * 36e5 };
+  // v0.7: převod, dlužníček, obálky, narozeniny, nákupní seznam
+  const pv = uid(); S.prevody[pv] = { id: pv, d: addD(today, -4), ts: 1, kc: 2000, z: 'ucet', na: 'hot', text: 'Výběr z bankomatu' };
+  const dl = (kdo, kc, smer, dny, pozn, o) => { const id = uid(); S.dluhy[id] = { id, kdo, kc, smer, d: addD(today, -dny), pozn, ts: dny, ...(o || {}) }; return id; };
+  dl('Petr', 500, 'mne', 12, 'na benzín');
+  const jana = dl('Jana', 1200, 'ja', 20, 'lístky na koncert'); S.dluhy[jana].splatky = { s1: { d: addD(today, -6), kc: 400 } };
+  dl('Petr', 200, 'ja', 3, 'oběd');
+  dl('Tomáš', 300, 'mne', 40, 'pizza', { vraceno: pd(addD(today, -30)).getTime() });
+  const ob = (nazev, kc, kats, barva, ord) => { const id = uid(); S.obalky[id] = { id, nazev, kc, kats: Object.fromEntries(kats.map(k => [k, true])), barva, ord }; };
+  ob('Jídlo', 9000, ['jidlo'], '#e9c46a', 0); ob('Kavárny', 1500, ['rest'], '#d4a373', 1); ob('Auto a doprava', 3000, ['auto', 'doprava'], '#a8c5da', 2); ob('Zábava', 1500, ['zab', 'obl'], '#e5989b', 3);
+  const nr = (jmeno, datum, rozpocet) => { const id = uid(); S.narozeniny[id] = { id, jmeno, datum, rozpocet, napady: '' }; };
+  nr('Babička', '1952-' + addD(today, 9).slice(5), 800); nr('Petr', '--12-19', 500); nr('Mamka', '1966-03-14', 1000);
+  ['Mléko', 'Chleba', 'Máslo', 'Jablka', '10 vajec'].forEach((t, i) => { const id = uid(); S.nakup[id] = { id, text: t, ts: i, hotovo: i === 2 }; });
   Object.assign(S, ukazkaZivota());
   return S;
 }

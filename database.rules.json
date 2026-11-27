@@ -96,6 +96,33 @@
             }
           }
         },
+        "prevody": {
+          ".write": "auth != null && auth.uid === $uid",
+          "$id": {
+            ".validate": "newData.hasChildren(['id', 'd', 'kc', 'z', 'na']) && newData.child('kc').isNumber() && newData.child('kc').val() > 0 && newData.child('kc').val() < 100000000"
+          }
+        },
+        "dluhy": {
+          ".write": "auth != null && auth.uid === $uid",
+          "$id": {
+            ".validate": "newData.hasChildren(['id', 'kdo', 'kc', 'd']) && newData.child('kc').isNumber() && newData.child('kc').val() > 0"
+          }
+        },
+        "obalky": {
+          ".write": "auth != null && auth.uid === $uid"
+        },
+        "narozeniny": {
+          ".write": "auth != null && auth.uid === $uid",
+          "$id": {
+            "napady": { ".validate": "newData.isString() && newData.val().length < 400" }
+          }
+        },
+        "nakup": {
+          ".write": "auth != null && auth.uid === $uid",
+          "$id": {
+            "text": { ".validate": "newData.isString() && newData.val().length < 200" }
+          }
+        },
         "tydny": {
           ".write": "auth != null && auth.uid === $uid",
           "$po": {

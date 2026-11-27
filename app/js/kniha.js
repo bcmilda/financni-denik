@@ -1,4 +1,4 @@
-// Finanční deník · kniha.js · v0.6.0
+// Finanční deník · kniha.js · v0.7.0
 // Kniha na stole: zavřené desky při startu, otáčení listů (animace + šustění), listování prstem a šipkami.
 
 import { pd, MG } from './util.js';

@@ -1,13 +1,19 @@
 # Finanční deník
 
 Zápisník na peníze, který se počítá sám. Samostatná appka vycházející z Deníku ve FinanceFlow.
-Verze **0.6.0** (25. 11. 2026).
+Verze **0.7.0** (27. 11. 2026).
 
 ## Co umí v0.1
 
 - Kniha v kožených deskách s menu, rejstříkem a čísly stran. Vzhled si člověk skládá sám: 4 režimy knihy
   (zápisník, pokladní kniha, analytický, rodinný), 6 desek, 4 stoly, 7 barev papíru, 6 druhů linek, 7 písem, 8 barev písma.
 - **Přehled:** příjmy/výdaje/zůstatek, budík plánu, shrnutí měsíce na lepíku, akvarelové grafy (sloupce, koláč), cíle, úkoly, ocenění.
+- **Dlužníček:** kdo komu kolik dluží, splátky, razítko VRÁCENO, vzájemné započtení.
+- **Obálky:** měsíční obálky z kategorií (kreslené obálky s bankovkami), kolik zbývá, co je mimo obálky.
+- **Převody mezi peněženkami** (např. výběr z bankomatu) – mění zůstatky, ne výdaje.
+- **Narozeniny a dárky:** nejbližší oslavy, věk, nápady, „Dárek koupen“ zapíše výdaj; připomínka v Přehledu.
+- **Nákupní seznam:** odškrtávání v obchodě, u pokladny jeden zápis s výčtem položek.
+- **Přihlášení Googlem v Android appce** přes systémový prohlížeč (`prihlaseni.html`).
 - **Kniha na stole:** při spuštění zavřené kožené desky s gumičkou, otáčení listů s animací (a volitelně šustěním), listování prstem nebo šipkami.
 - **Nálepky a lepicí lístky:** čtyři archy nálepek (Základní, Peníze, Domov a cesty, Rodina a svátky) a barevné lístky s vlastním textem; nalepíš je kamkoli a posuneš prstem.
 - **Týdenní list a nedělní rituál:** týden po dnech, souhrn, počasí týdne, tři otázky a „tento týden si hlídám“.
@@ -112,6 +118,9 @@ firebase.json        hosting + pravidla
   js/kniha.js        zavřená kniha, otáčení listů, listování
   js/tisk.js         kronika do PDF
   js/uctenky.js      fotky účtenek a AI čtení
+  js/seznamy.js      dlužníček, obálky, narozeniny, nákupní seznam
+  js/googleapp.js    přihlášení Googlem v Android appce
+  prihlaseni.html    přihlašovací stránka pro Android appku
   js/zivot.js        Kniha života (stránky a akce)
   js/zivot-data.js   Kniha života – věk, zuby FDI, ukázková data
   js/blocek.js       trhací bloček (rychlý zápis), otevírá ho widget a zkratky

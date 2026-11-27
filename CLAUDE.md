@@ -18,7 +18,7 @@ Deník ve FinanceFlow zůstává beze změny. Plán: dokument „Finanční den�
 - Vanilla JS, ES moduly, bez build kroku. PWA (manifest + `sw.js`).
 - Firebase projekt `financni-denik-dd6d3` (Spark, zdarma). Auth (Google, e-mail) + Realtime Database europe-west1. SDK 10.12.2 z gstatic, načítá se dynamicky
   jen při vyplněném `js/config.js`.
-- Data: `users/{uid}/{ucet|nast|kats|pen|e|notes|stk|pred|vozy|ukoly|osoby|zivot|cile|trackery|pravidelne|nalepky|tydny}`. Zápisy **po položkách**
+- Data: `users/{uid}/{ucet|nast|kats|pen|e|notes|stk|pred|vozy|ukoly|osoby|zivot|cile|trackery|pravidelne|nalepky|tydny|prevody|dluhy|obalky|narozeniny|nakup}`. Zápisy **po položkách**
   (`store.zapis(['e', id], objekt)`), nikdy celý deník.
 - **Pravidla:** zápis jen na úrovni sekcí, ne na `users/$uid` (kaskáda pravidel v RTDB by jinak povolila vše pod ní).
   `ucet` jde zapsat jen jednou a `trialDo` max. 31 dní dopředu.
@@ -54,7 +54,14 @@ Deník ve FinanceFlow zůstává beze změny. Plán: dokument „Finanční den�
   Appka zdraví nehodnotí ani nedoporučuje; AI jen vysvětluje text zprávy (worker/worker.js, prompt to hlídá).
 - AI worker `worker/worker.js` (Cloudflare): POST /vysvetli a /uctenka, ověřuje Firebase ID token přes accounts:lookup,
   nic neukládá. Adresa v `js/config.js` → `AI_WORKER`.
-- Google přihlášení v Android appce: popup ve WebView nefunguje → později plugin @capacitor-firebase/authentication.
+- **Google v Android appce (0.7):** Google nepovoluje přihlášení ve WebView. Appka (`googleapp.js`) vytvoří jednorázový
+  AES-GCM klíč, otevře přes @capacitor/browser `prihlaseni.html#k=…&n=…` (GitHub Pages, `WEB_URL` v config.js), stránka
+  přihlásí Googlem (popup, záložně redirect), Google token zašifruje a vrátí odkazem `financnidenik://prihlaseni?d=…`;
+  appka ho rozšifruje a zavolá `signInWithCredential`. Bez SHA-1 a bez změn ve Firebase. Pokus platí 15 minut.
+- **0.7:** `prevody/{id}` {d, kc, z, na, text} (jen zůstatky peněženek, nikdy výdaj); `dluhy/{id}` {kdo, kc, smer mne|ja,
+  d, pozn, splatky/{id}{d,kc}, vraceno} (půjčka není výdaj); `obalky/{id}` {nazev, kc, kats{katId:true}, barva, ord}
+  (kategorie jen v jedné obálce); `narozeniny/{id}` {jmeno, datum YYYY-MM-DD | --MM-DD, rozpocet, napady, darky/{rok}: idZápisu},
+  osoby z Knihy života mají `narozeniny/o-{idOsoby}`; `nakup/{id}` {text, ts, hotovo}.
 
 ## Postup práce
 1. Změna kódu → `node tests/logic.test.mjs` a `node tests/store.test.mjs`.
@@ -62,6 +69,7 @@ Deník ve FinanceFlow zůstává beze změny. Plán: dokument „Finanční den�
 3. Nasazení: nejdřív `firebase deploy --only database` (když se měnila pravidla), pak hosting.
 
 ## Verze
+- **0.7.0** (27. 11. 2026) – přihlášení Googlem v Android appce, Dlužníček, obálky, převody mezi peněženkami, narozeniny a dárky, nákupní seznam.
 - **0.6.1** (27. 11. 2026) – oprava: tlačítka „Pokračovat s Googlem“ a „Vyzkoušet bez účtu“ na přihlašovací obrazovce nereagovala.
 - **0.6.0** (25. 11. 2026) – zavřená kniha a otáčení listů, nálepky a lepicí lístky, týdenní list s nedělním rituálem, kronika do PDF, AI čtení účtenek, tlačítko Vrátit.
 - **0.5.0** (25. 11. 2026) – spořicí sklenice/teploměr/zeď, tracker pro sebe i děti, pravidelné platby s razítkem, razítko SPLNĚNO, emoce u výdajů, roční bilance v puntících, zvuky.
@@ -73,6 +81,4 @@ Deník ve FinanceFlow zůstává beze změny. Plán: dokument „Finanční den�
 
 ## Známé limity a TODO
 - Zkušební doba se zakládá v prohlížeči (pravidla hlídají max. 31 dní). Po zavedení plateb ověřovat ve workeru.
-- Převody mezi peněženkami zatím nejsou.
-- Dlužníček, obálky, teploměr cíle, narozeniny, nákupní seznam – fáze 3–4.
 - Stripe a placení – fáze 5. Propojení s FinanceFlow – fáze 6.

@@ -14,3 +14,6 @@ export const FIREBASE = {
 // Adresa AI workeru pro vysvětlení lékařských zpráv (worker/worker.js), např.
 // 'https://financni-denik-ai.<účet>.workers.dev'. Prázdné = tlačítko Vysvětlit jen ukáže, že AI není zapnutá.
 export const AI_WORKER = '';
+
+// Veřejná adresa webové verze. Android appka tu otevírá stránku prihlaseni.html pro přihlášení Googlem.
+export const WEB_URL = 'https://bcmilda.github.io/financni-denik/';

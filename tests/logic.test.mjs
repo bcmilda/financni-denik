@@ -1,6 +1,6 @@
 // Finanční deník · testy čisté logiky · spuštění: node tests/logic.test.mjs
 import assert from 'node:assert/strict';
-import { parse, tankStats, tachOk, hledej, zustatek, deser, plain, mesice, souhrnMesice, stavKDatu, oceneni, posunYm, katObdobi, trackerStat, pravidelneMesic, pocitStat, rokVPuntikach, limitDne, pondeli, tydenStat, cisloTydne } from '../app/js/logic.js';
+import { parse, tankStats, tachOk, hledej, zustatek, deser, plain, mesice, souhrnMesice, stavKDatu, oceneni, posunYm, katObdobi, trackerStat, pravidelneMesic, pocitStat, rokVPuntikach, limitDne, pondeli, tydenStat, cisloTydne, dluhStav, dluhyPoLidech, obalkyMesic, dalsiNarozeniny, narozeninySeznam, sumT, monthE } from '../app/js/logic.js';
 import { prazdny, ukazka } from '../app/js/data.js';
 import { vek, nazevZubu, oblouk, stavZubu } from '../app/js/zivot-data.js';
 
@@ -157,5 +157,46 @@ t('ukázka má nálepky a uzavřený týden', () => {
   const S = ukazka();
   assert.ok(Object.values(S.nalepky).some(n => n.druh === 'postit' && n.text));
   assert.ok(Object.values(S.tydny).some(x => x.hotovo && x.priste));
+});
+t('převody mění zůstatky peněženek, ne výdaje', () => {
+  const S = prazdny();
+  S.pen.ucet.start = 10000; S.pen.hot.start = 100;
+  S.e = { a: { id: 'a', d: '2026-11-02', typ: 'v', kc: 300, kat: 'jidlo', pen: 'hot', tagy: [] } };
+  S.prevody = { p: { id: 'p', d: '2026-11-01', kc: 2000, z: 'ucet', na: 'hot' } };
+  assert.equal(zustatek(S, 'ucet'), 8000); assert.equal(zustatek(S, 'hot'), 1800);
+  assert.equal(sumT(monthE(S, '2026-11'), 'v'), 300, 'převod není výdaj');
+});
+t('dlužníček: splátky, vráceno, vzájemné započtení', () => {
+  assert.deepEqual(dluhStav({ kc: 1000 }), { splaceno: 0, zbyva: 1000, hotovo: false });
+  assert.deepEqual(dluhStav({ kc: 1000, splatky: { a: { kc: 400 }, b: { kc: 250.5 } } }), { splaceno: 650.5, zbyva: 349.5, hotovo: false });
+  assert.equal(dluhStav({ kc: 1000, splatky: { a: { kc: 1200 } } }).hotovo, true, 'přeplaceno = vyrovnáno');
+  assert.equal(dluhStav({ kc: 1000, vraceno: 1 }).zbyva, 0);
+  const S = prazdny();
+  S.dluhy = { a: { id: 'a', kdo: 'Petr', kc: 500, smer: 'mne', d: '2026-11-01' }, b: { id: 'b', kdo: 'petr ', kc: 200, smer: 'ja', d: '2026-11-02' }, c: { id: 'c', kdo: 'Jana', kc: 300, smer: 'mne', d: '2026-11-03', vraceno: 1 } };
+  const l = dluhyPoLidech(S);
+  assert.equal(l.length, 1, 'Jana vyrovnaná, Petr sloučený bez ohledu na velikost písmen');
+  assert.equal(l[0].mne, 500); assert.equal(l[0].ja, 200); assert.equal(l[0].cisty, 300);
+});
+t('obálky sčítají své kategorie, nic dvakrát', () => {
+  const S = prazdny();
+  S.e = { a: { id: 'a', d: '2026-11-02', typ: 'v', kc: 300, kat: 'jidlo', tagy: [] }, b: { id: 'b', d: '2026-11-03', typ: 'v', kc: 700, kat: 'auto', tagy: [] },
+    c: { id: 'c', d: '2026-11-04', typ: 'v', kc: 100, kat: 'doprava', tagy: [] }, d: { id: 'd', d: '2026-11-05', typ: 'v', kc: 50, kat: 'zab', tagy: [] }, e: { id: 'e', d: '2026-10-30', typ: 'v', kc: 999, kat: 'jidlo', tagy: [] } };
+  S.obalky = { j: { id: 'j', nazev: 'Jídlo', kc: 1000, kats: { jidlo: true }, ord: 0 }, a: { id: 'a', nazev: 'Auto', kc: 600, kats: { auto: true, doprava: true }, ord: 1 } };
+  const m = obalkyMesic(S, '2026-11');
+  assert.deepEqual(m.radky.map(r => [r.o.id, r.utraceno, r.zbyva]), [['j', 300, 700], ['a', 800, -200]]);
+  assert.equal(m.rozdeleno, 1600); assert.equal(m.mimo, 50);
+});
+t('narozeniny: nejbližší datum, věk, neznámý rok, 29. února', () => {
+  assert.deepEqual(dalsiNarozeniny('2019-12-03', '2026-11-27'), { d: '2026-12-03', za: 6, vek: 7 });
+  assert.deepEqual(dalsiNarozeniny('1966-03-14', '2026-11-27'), { d: '2027-03-14', za: 107, vek: 61 });
+  assert.deepEqual(dalsiNarozeniny('--11-27', '2026-11-27'), { d: '2026-11-27', za: 0, vek: null });
+  assert.equal(dalsiNarozeniny('2000-02-29', '2027-01-10').d, '2027-02-28');
+  assert.equal(dalsiNarozeniny('blbost', '2026-11-27'), null);
+  const S = prazdny();
+  S.osoby = { ema: { id: 'ema', jmeno: 'Ema', narozeni: '2019-12-03' } };
+  S.narozeniny = { x: { id: 'x', jmeno: 'Babička', datum: '1952-12-01' }, 'o-ema': { id: 'o-ema', osoba: 'ema', napady: 'lego' } };
+  const l = narozeninySeznam(S, '2026-11-27');
+  assert.deepEqual(l.map(x => [x.jmeno, x.za]), [['Babička', 4], ['Ema', 6]]);
+  assert.equal(l[1].z.napady, 'lego', 'dárky osoby z Knihy života se drží v narozeniny/o-id');
 });
 console.log(`\n${ok} testů prošlo`);

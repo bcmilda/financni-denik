@@ -1,4 +1,4 @@
-// Finanční deník · views.js · v0.6.0
+// Finanční deník · views.js · v0.7.0
 // Každá stránka vrací [levá strana, pravá strana] jako HTML. Žádné zápisy dat – ty dělá app.js.
 
 import { esc, kc, kc2, nf, pd, iso, mk, dim, dnes, DNY, MG, MN, ymLabel, datKratce, vals } from './util.js';
@@ -70,12 +70,13 @@ const mHead = (titul, pod) => '<div class="phead"><button class="arw" data-act="
 
 export function vDen(S, U, Q, mic) {
   const d = U.day, dt = pd(d), ym = mk(d);
-  const list = sortE(vals(S.e).filter(e => e.d === d)), stk = vals(S.stk).filter(s => s.d === d);
+  const list = sortE(vals(S.e).filter(e => e.d === d)), stk = vals(S.stk).filter(s => s.d === d), prev = vals(S.prevody || {}).filter(t => t.d === d).sort((a, b) => (a.ts || 0) - (b.ts || 0));
   const ex = sumT(list, 'v'), inc = sumT(list, 'p');
   const L = '<div class="phead"><button class="arw" data-act="dprev" aria-label="Předchozí den">‹</button><div><h2 class="pt">' + DNY[dt.getDay()] + ' ' + dt.getDate() + '. ' + MG[dt.getMonth()] + '</h2><p class="ps">' + ymLabel(ym) + (d === dnes() ? ' · dnes' : ' · <a href="#den" data-act="today">zpět na dnešek</a>') + '</p></div><button class="arw" data-act="dnext" aria-label="Další den">›</button></div>' +
     '<div class="hlbar"><span>Zvýrazňovač: označ slova a vyber barvu</span>' + HL.map(h => '<button class="hlb" data-hl="' + h.c + '" style="--h:' + h.h + '" aria-label="Zvýraznit ' + h.n + '"></button>').join('') + '<button class="hlb x" data-hl="x">Smazat zvýraznění</button>' + (mic ? '<button class="hlb x mic2" data-act="mic" data-id="note">Diktovat zápisek</button>' : '') + '</div><p class="hint" id="hlHint"></p>' +
     '<div id="note" class="note hand lined" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="Zápisek dne" data-ph="Co se dnes stalo…">' + deser(S.notes[d]) + '</div>' +
-    '<h3 class="sub">Zapsané pohyby</h3>' + (list.length ? '<ul class="list">' + list.map(e => entHTML(S, e)).join('') + '</ul><p class="note2">Výdaje dne <b>' + kc(ex) + '</b>' + (inc ? ' · příjmy <b>' + kc(inc) + '</b>' : '') + '</p>' : '<p class="empty">Zatím nic. Zapiš první výdaj ' + (window.innerWidth > 900 ? 'vpravo' : 'níž') + '.</p>');
+    '<h3 class="sub">Zapsané pohyby</h3>' + (list.length ? '<ul class="list">' + list.map(e => entHTML(S, e)).join('') + '</ul><p class="note2">Výdaje dne <b>' + kc(ex) + '</b>' + (inc ? ' · příjmy <b>' + kc(inc) + '</b>' : '') + '</p>' : '<p class="empty">Zatím nic. Zapiš první výdaj ' + (window.innerWidth > 900 ? 'vpravo' : 'níž') + '.</p>') +
+    (prev.length ? '<ul class="list prevody">' + prev.map(t => prevodHTML(S, t)).join('') + '</ul>' : '');
   const pr = S.pred[ym], mE = monthE(S, ym), left = (pr ? pr.prijem : sumT(mE, 'p')) - sumT(mE, 'v'), daysLeft = dim(ym) - dt.getDate() + 1;
   const tasks = vals(S.ukoly).filter(u => u.termin === d && !u.hotovo);
   const vz = vozy(S);
@@ -86,13 +87,28 @@ export function vDen(S, U, Q, mic) {
     '<label class="f">Téma<select id="qtema"><option value="">Bez tématu</option><option value="tank">Tankování</option></select></label></div>' +
     '<div class="row" id="qtank" hidden>' + (vz.length ? '<label class="f">Vozidlo<select id="qvoz">' + vz.map(v => '<option value="' + v.id + '"' + (v.id === U.voz ? ' selected' : '') + '>' + esc(v.n) + (v.typ === 'moto' ? ' (moto)' : ' (auto)') + '</option>').join('') + '</select></label>' : '<p class="note2" style="grid-column:1/-1">Nejdřív si na stránce <a href="#tankovani">Tankování</a> přidej auto nebo motorku.</p>') +
     '<label class="f">Litry<input id="ql" inputmode="decimal"></label><label class="f">Tachometr, km<input id="qkm" inputmode="numeric"></label></div>' +
-    '<button class="btn" data-act="add">Zapsat do deníku</button>' +
+    '<button class="btn" data-act="add">Zapsat do deníku</button>' + prevodForm(S) +
     '<h3 class="sub">Vlepené účtenky</h3>' + (stk.length ? '<div class="stk">' + stk.map(s => rcHTML(S, s, U)).join('') + '</div>' : '<p class="empty">Žádná účtenka. Vyfoť ji a vlep sem.</p>') +
     '<label class="btn ghost" for="rcf">Vlepit účtenku z fotky</label><input type="file" id="rcf" accept="image/*" hidden>' +
     '<h3 class="sub">Do konce měsíce</h3><dl class="kv"><dt>Zbývá z ' + (pr ? 'plánovaného příjmu' : 'příjmů') + '</dt><dd>' + kc(left) + '</dd><dt>Na každý den (' + daysLeft + ' ' + (daysLeft === 1 ? 'den' : daysLeft < 5 ? 'dny' : 'dní') + ')</dt><dd>' + kc(Math.max(0, left) / Math.max(1, daysLeft)) + '</dd></dl>' +
     (tasks.length ? '<h3 class="sub">Úkoly na dnes</h3>' + tasks.map(u => taskHTML(S, U, u)).join('') : '');
   return [L, R];
 }
+// Převod mezi peněženkami: peníze se jen přesunou, není to výdaj ani příjem
+export function prevodHTML(S, t, sDatem) {
+  const n = id => esc(((S.pen || {})[id] || { n: '?' }).n);
+  return '<li class="ent prevod"><span class="t">⇄ ' + (t.text ? esc(t.text) : 'Převod') + '</span><span class="a">' + kc(t.kc) + '</span>' +
+    '<button class="del" data-act="pvdel" data-id="' + t.id + '" aria-label="Smazat převod">×</button>' +
+    '<span class="meta">' + (sDatem ? '<a href="#den" data-act="goday" data-id="' + t.d + '">' + datKratce(t.d) + '</a>' : '') + '<span>' + n(t.z) + ' → ' + n(t.na) + '</span><span>převod, nepočítá se do výdajů</span></span></li>';
+}
+function prevodForm(S) {
+  const p = pens(S);
+  if (p.length < 2) return '<p class="note2">Převody mezi peněženkami (např. výběr z bankomatu) půjdou, až si přidáš druhou peněženku v <a href="#kategorie">Kategorie a peněženky</a>.</p>';
+  const sel = (id, def, lab) => '<label class="f">' + lab + '<select id="' + id + '">' + p.map(x => '<option value="' + x.id + '"' + (x.id === def ? ' selected' : '') + '>' + esc(x.n) + '</option>').join('') + '</select></label>';
+  return '<details class="pridat"><summary>⇄ Převod mezi peněženkami</summary><div class="row">' + sel('pvz', 'ucet', 'Z') + sel('pvn', (p.find(x => x.id !== 'ucet') || p[1]).id, 'Na') + '<label class="f">Kč<input id="pvk" inputmode="decimal" placeholder="2000"></label></div>' +
+    '<label class="f">Poznámka<input id="pvt" placeholder="např. výběr z bankomatu"></label><button class="btn ghost" data-act="pvadd">Převést</button><p class="note2">Převod nemění výdaje ani příjmy, jen zůstatky peněženek.</p></details>';
+}
+
 const MIC = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
 
 export function vMesic(S, U) {
@@ -183,9 +199,10 @@ export function vKat(S, U) {
   const R = '<h3 class="sub" style="margin-top:4px">Tagy</h3><p class="note2">Tag napíšeš rovnou do zápisu s mřížkou: „pizza 329 #rande“. Jeden zápis může mít víc tagů a zůstává ve své kategorii.</p>' +
     '<div class="tags">' + (Object.keys(tg).length ? Object.entries(tg).sort((a, b) => b[1].s - a[1].s).map(([t, o]) => '<button class="tg ' + (t === sel ? 'on' : '') + '" data-act="tag" data-id="' + esc(t) + '">#' + esc(t) + ' · ' + kc(o.s) + '</button>').join('') : '<p class="empty">Zatím žádné tagy.</p>') + '</div>' +
     (sel ? '<h3 class="sub">#' + esc(sel) + ' · ' + te.length + ' ' + (te.length === 1 ? 'zápis' : te.length < 5 ? 'zápisy' : 'zápisů') + ' · ' + kc(tg[sel] ? tg[sel].s : 0) + '</h3><ul class="list">' + te.map(e => entHTML(S, e, true)).join('') + '</ul>' : '') +
-    '<h3 class="sub">Peněženky</h3><p class="note2">Zůstatek = počáteční stav + příjmy − výdaje zapsané do peněženky.</p>' +
+    '<h3 class="sub">Peněženky</h3><p class="note2">Zůstatek = počáteční stav + příjmy − výdaje zapsané do peněženky ± převody.</p>' +
     pens(S).map(p => '<div class="kat pen"><span></span><span>' + esc(p.n) + '<small>počáteční stav <input class="inp mini" inputmode="decimal" data-act="pstart" data-id="' + p.id + '" value="' + (p.start || 0) + '" aria-label="Počáteční stav ' + esc(p.n) + '"> Kč</small></span><span class="sum"><b>' + kc(zustatek(S, p.id)) + '</b></span>' + (p.id === 'ucet' ? '<span></span>' : '<button class="del" data-act="pdel" data-id="' + p.id + '" aria-label="Smazat peněženku ' + esc(p.n) + '">×</button>') + '</div>').join('') +
-    '<div class="row" style="margin-top:12px"><label class="f">Nová peněženka<input id="pn" placeholder="např. Spořicí účet"></label></div><button class="btn ghost" data-act="padd">Přidat peněženku</button>';
+    '<div class="row" style="margin-top:12px"><label class="f">Nová peněženka<input id="pn" placeholder="např. Spořicí účet"></label></div><button class="btn ghost" data-act="padd">Přidat peněženku</button>' +
+    (vals(S.prevody || {}).length ? '<h3 class="sub">Poslední převody</h3><ul class="list prevody">' + vals(S.prevody).sort((a, b) => b.d.localeCompare(a.d) || (b.ts || 0) - (a.ts || 0)).slice(0, 8).map(t => prevodHTML(S, t, true)).join('') + '</ul>' : '') + prevodForm(S);
   return [L, R];
 }
 

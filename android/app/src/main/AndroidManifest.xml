@@ -22,7 +22,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Odkazy z widgetu a zkratek: financnidenik://zapis, financnidenik://zapis?mic=1 -->
+            <!-- Odkazy z widgetu a zkratek (financnidenik://zapis, ?mic=1) a návrat z přihlášení Googlem (financnidenik://prihlaseni) -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

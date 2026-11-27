@@ -1,4 +1,4 @@
-// Finanční deník · tracker.js · v0.6.0
+// Finanční deník · tracker.js · v0.7.0
 // Tracker návyků a výskytů – pro sebe i pro ostatní (dítě z Knihy života).
 // Data: trackery/{id} = { nazev, osoba ('' = já), rezim ('ano' | 'pocet'), barva, dny: { 'YYYY-MM-DD': počet } }
 

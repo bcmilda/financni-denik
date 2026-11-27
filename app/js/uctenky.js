@@ -1,4 +1,4 @@
-// Finanční deník · uctenky.js · v0.6.0
+// Finanční deník · uctenky.js · v0.7.0
 // Vlepení účtenky z fotky a její přečtení přes AI (worker /uctenka): obchod, datum, celkem, položky, kategorie.
 // Do databáze jde jen malá fotka (480 px); pro AI se drží větší verze jen v paměti, dokud je appka otevřená.
 

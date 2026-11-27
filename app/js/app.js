@@ -1,4 +1,4 @@
-// Finanční deník · app.js · v0.6.1
+// Finanční deník · app.js · v0.7.0
 // Start, přihlášení, vykreslení stránek a všechny akce uživatele.
 
 import { VERZE, iso, pd, addD, mk, dnes, esc, kc, nf, num, uid, vals } from './util.js';
@@ -14,14 +14,16 @@ import { vlozNalepky, nalepkyAkce, initNalepky } from './nalepky.js';
 import { ukazZavrenou, listuj, initListovani, sipkaStranky } from './kniha.js';
 import { vKronika, tiskAkce } from './tisk.js';
 import { vlepitFotku, precti } from './uctenky.js';
+import { vDluznicek, vObalky, vNarozeniny, vNakup, seznamyAkce, ulozNapady } from './seznamy.js';
+import { pripravit as googlePripravit, rozsifrovat as googleRozsifrovat } from './googleapp.js';
 import { mesice, souhrnMesice, katObdobi, posunYm } from './logic.js';
-import { FIREBASE } from './config.js';
+import { FIREBASE, WEB_URL } from './config.js';
 import { diktuj, hlasDostupny, hlasChyba } from './hlas.js';
 import { initBlocek, otevritBlocek, toast } from './blocek.js';
 import { vZivot, zivotAkce, bindZivot, rustData } from './zivot.js';
 
 const $ = s => document.querySelector(s);
-const VIEWS = { prehled: vPrehled, den: vDen, pokladni: vPokladni, mesic: vMesic, grafy: vGrafy, cile: vCile, tracker: vTracker, tyden: vTyden, oceneni: vOceneni, rok: vRok, kronika: vKronika, zivot: vZivot, tankovani: vTank, kategorie: vKat, hledat: vHledat,
+const VIEWS = { prehled: vPrehled, den: vDen, pokladni: vPokladni, mesic: vMesic, grafy: vGrafy, cile: vCile, tracker: vTracker, tyden: vTyden, dluznicek: vDluznicek, obalky: vObalky, narozeniny: vNarozeniny, nakup: vNakup, oceneni: vOceneni, rok: vRok, kronika: vKronika, zivot: vZivot, tankovani: vTank, kategorie: vKat, hledat: vHledat,
   vzhled: (S, U) => vVzhled(S, U, { ucet: ucetHTML() }), ukoly: vCile };
 // Menu v kožených deskách: [stránka, název, ikonka]
 const MENU = [
@@ -38,6 +40,10 @@ const MENU = [
   ['zivot', 'Kniha života', '<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>'],
   ['tankovani', 'Tankování', '<path d="M5 20V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v15M4 20h11M7 8h5M14 9h2a2 2 0 0 1 2 2v5a1.5 1.5 0 0 0 3 0V8l-3-3"/>'],
   ['kategorie', 'Kategorie a peněženky', '<path d="M4 12V5a1 1 0 0 1 1-1h7l8 8-8 8z"/><circle cx="8.5" cy="8.5" r="1.3"/>'],
+  ['obalky', 'Obálky', '<path d="M3 7h18v12H3z"/><path d="M3 7l9 6 9-6"/><path d="M8 7V4h8v3"/>'],
+  ['nakup', 'Nákupní seznam', '<path d="M5 6h14l-1.5 9h-11z"/><path d="M5 6L4 3H2M9 19.5h.01M16 19.5h.01M9 10h6"/>'],
+  ['dluznicek', 'Dlužníček', '<path d="M4 5h11a3 3 0 0 1 3 3v11H7a3 3 0 0 1-3-3z"/><path d="M8 10h6M8 13.5h4M18 8h2v9"/>'],
+  ['narozeniny', 'Narozeniny a dárky', '<path d="M4 11h16v9H4zM3 8h18v3H3zM12 8v12"/><path d="M12 8c-2-3-6-3-5-.5S12 8 12 8zM12 8c2-3 6-3 5-.5S12 8 12 8z"/>'],
   ['kronika', 'Kronika do PDF', '<path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 16.5h7M9 9.5h3"/>'],
   ['hledat', 'Hledat', '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>'],
   ['vzhled', 'Vzhled a nastavení', '<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>'],
@@ -87,6 +93,7 @@ function render() {
   ro = new ResizeObserver(kresli);
   document.querySelectorAll('.fig svg').forEach(s => ro.observe(s));
   cekaRender = false;
+  if (U.fokus) { const f = $(U.fokus); U.fokus = ''; if (f) f.focus(); }
   if (stare) { listuj(smer, stare); zvuk('list'); }
 }
 function kresli() {
@@ -353,6 +360,14 @@ document.addEventListener('click', ev => {
     case 'kcol': case 'pstart': return;
     case 'padd': { const n = $('#pn').value.trim(); if (!n) { $('#pn').focus(); return; } const p = { id: uid(), n, start: 0 }; zapis(['pen', p.id], p); break; }
     case 'pdel': zapis(['pen', id], null); break;
+    case 'pvadd': {
+      const z = $('#pvz').value, na = $('#pvn').value, c = num($('#pvk').value);
+      if (z === na) { toast('Vyber dvě různé peněženky.'); return; }
+      if (!(c > 0)) { $('#pvk').focus(); return; }
+      const p = { id: uid(), d: U.view === 'den' ? U.day : dnes(), ts: Date.now(), kc: c, z, na, text: $('#pvt').value.trim().slice(0, 80) };
+      zapis(['prevody', p.id], p); toast('Převedeno ' + kc(c) + '.'); break;
+    }
+    case 'pvdel': { const p = (D.prevody || {})[id]; zapis(['prevody', id], null); if (p) toast('Převod smazán.', { n: 'Vrátit', f: () => { zapis(['prevody', id], p); render(); } }); break; }
     case 'tag': U.tagSel = U.tagSel === id ? '' : id; break;
     case 'reset': resetLocal(id === 'demo'); break;
     case 'logout': if (api) api.odhlasit(); return;
@@ -360,7 +375,7 @@ document.addEventListener('click', ev => {
     default: {
       const c = ctxAkce();
       let r = zivotAkce(a, t, U, c);
-      for (const f of [kronikaAkce, trackerAkce, tydenAkce, nalepkyAkce, tiskAkce]) if (!r) r = f(a, t, U, c);
+      for (const f of [kronikaAkce, trackerAkce, tydenAkce, nalepkyAkce, tiskAkce, seznamyAkce]) if (!r) r = f(a, t, U, c);
       if (!r || r === 'stop') return;
     }
   }
@@ -370,6 +385,7 @@ document.addEventListener('change', ev => {
   const t = ev.target, a = t.dataset && t.dataset.act;
   if (a === 'kcol') { zapis(['kats', t.dataset.id, 'c'], t.value); render(); }
   if (a === 'wtext') ulozText(t);
+  if (a === 'narnap') ulozNapady(t, S());
   if (a === 'pstart') { const v = num(t.value); zapis(['pen', t.dataset.id, 'start'], isNaN(v) ? 0 : v); render(); }
 });
 // Menu na telefonu: tlačítko v deskách rozbalí seznam stránek
@@ -396,7 +412,8 @@ function route() {
 const NATIVNI = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 // Android appka: widget a zkratky otevírají financnidenik://zapis (?mic=1)
 function odkazApp(url) {
-  if (!url || !/zapis/.test(url)) return;
+  if (url && /^financnidenik:\/\/prihlaseni/.test(url)) { dokoncitGoogle(url); return; }
+  if (!url || !/zapis/.test(url) || $('#app').hidden) return;
   U.view = 'den'; saveUI(); render();
   otevritBlocek({ mic: /mic=1/.test(url) });
 }
@@ -430,12 +447,32 @@ async function prihlas(co) {
   if (!api) return;
   msg.textContent = 'Chvilku…';
   try {
+    if (co === 'google' && NATIVNI) { await googleVAppce(); return; }
     if (co === 'google') await api.google();
     else if (co === 'login') await api.login(em, he);
     else if (co === 'reg') await api.registrace(em, he);
     else if (co === 'reset') { if (!em) { msg.textContent = 'Napiš nahoru svůj e-mail a klikni znovu.'; return; } await api.reset(em); msg.textContent = 'Poslal jsem odkaz na nastavení hesla na ' + em + '.'; }
   } catch (e) { msg.textContent = (api.chyba || (x => x.message))(e); }
 }
+// ---------- Google v Android appce (přes systémový prohlížeč, viz googleapp.js) ----------
+const Browser = () => window.Capacitor.Plugins.Browser || window.Capacitor.registerPlugin('Browser');
+async function googleVAppce() {
+  nativniOdkazy();
+  const url = await googlePripravit(WEB_URL);
+  $('#lmsg').textContent = 'Otevírám přihlášení v prohlížeči…';
+  await Browser().open({ url, toolbarColor: '#5b3620' });
+}
+async function dokoncitGoogle(url) {
+  Browser().close().catch(() => {});
+  const msg = $('#lmsg');
+  try {
+    if (!api) throw new Error('nenacteno');
+    if (msg) msg.textContent = 'Přihlašuji…';
+    const t = await googleRozsifrovat(url);
+    await api.googleToken(t.idToken, t.accessToken);
+  } catch (e) { if (msg) msg.textContent = (api && api.chyba ? api.chyba(e) : 'Přihlášení se nepovedlo.'); }
+}
+
 let blocekInit = false, knihaUkazana = false;
 const ctxAkce = () => ({ render, toast, zvuk, S, U });
 // Listování: šipky v hlavičce stránky, jinak další/předchozí stránka v menu
@@ -470,6 +507,7 @@ async function boot() {
       api.odebirej(u.uid, data => { zCloudu(data); if ($('#app').hidden) spust(); });
     });
     api.chyba = mod.chyba;
+    nativniOdkazy(); // návrat z přihlášení Googlem může přijít ještě před otevřením deníku
   } catch (e) {
     ukazLogin('Přihlášení se nenačetlo. Jsi připojený k internetu?');
   }

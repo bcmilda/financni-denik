@@ -1,4 +1,4 @@
-// Finanční deník · kronika.js · v0.6.0
+// Finanční deník · kronika.js · v0.7.0
 // Stránky „finanční kroniky“: Přehled, Pokladní kniha, Grafy a statistiky, Cíle a úkoly, Ocenění, Vzhled a nastavení.
 
 import { esc, kc, nf, num, pd, mk, dim, dnes, uid, vals, MN, MG, ymLabel, datKratce, VERZE } from './util.js';
@@ -8,6 +8,7 @@ import { st, zapis } from './store.js';
 import { kat, taskHTML } from './views.js';
 import { kresliCil, VZHLEDY_CILE } from './sklenice.js';
 import { ritualCeka } from './tyden.js';
+import { narozeninySeznam } from './logic.js';
 
 const $ = s => document.querySelector(s);
 const pct = z => (z == null ? '' : '<span class="zm ' + (z > 0 ? 'nah' : z < 0 ? 'dol' : '') + '">' + (z > 0 ? '↑ +' : z < 0 ? '↓ ' : '') + z + ' %</span>');
@@ -60,7 +61,9 @@ export function vPrehled(S, U) {
   const dnesUk = vals(S.ukoly).filter(u => !u.hotovo && u.mesic <= mk(now)).sort((a, b) => (a.termin || '9').localeCompare(b.termin || '9')).slice(0, 4);
   const posl = oceneni(S, now).filter(o => o.kdy).sort((a, b) => b.kdy.localeCompare(a.kdy))[0];
   const rit = ritualCeka(S, now);
+  const nar = narozeninySeznam(S, now).filter(x => x.za <= 14).slice(0, 3);
   const R = (rit ? '<a href="#tyden" class="lepik ruzovy ritual" data-act="gotyden" data-id="' + rit + '"><h4>Nedělní rituál</h4><p>Pět minut ohlédnutí za týdnem. Otevřít týdenní list →</p></a>' : '') +
+    (nar.length ? '<a href="#narozeniny" class="lepik modry ritual"><h4>Narozeniny</h4>' + nar.map(x => '<p>' + esc(x.jmeno) + (x.vek != null ? ' (' + x.vek + ')' : '') + ' – ' + (x.za === 0 ? 'dnes!' : x.za === 1 ? 'zítra' : 'za ' + x.za + ' dní') + '</p>').join('') + '</a>' : '') +
     '<h3 class="sub" style="margin-top:4px">Kategorie výdajů</h3>' + (tot ? '<div class="kolac"><div class="fig kf"><svg id="gkol" role="img" aria-label="Výdaje podle kategorií"></svg></div><ul class="legenda">' +
     ks.map(([k, v]) => { const o = kat(S, k); return '<li data-act="kslice" data-id="' + k + '" class="' + (U.ksel === k ? 'on' : '') + '"><i style="--c:' + o.c + '"></i>' + esc(o.n) + '<b>' + Math.round(v / tot * 100) + ' %</b></li>'; }).join('') + '</ul></div>' : '<p class="empty">V tomto měsíci zatím žádné výdaje.</p>') +
     '<div class="dvoj"><div><h3 class="sub">Moje cíle <a href="#cile" class="mini-l">+ Nový cíl</a></h3>' + (cile.length ? cile.map(cilHTML).join('') : '<p class="empty">Žádný cíl. <a href="#cile">Přidat první</a></p>') + '</div>' +
